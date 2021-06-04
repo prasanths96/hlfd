@@ -18,7 +18,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"strconv"
 
@@ -27,8 +26,7 @@ import (
 )
 
 // Flags
-
-type CAFlags struct {
+var depCaFlags struct {
 	CaName            string
 	TLSEnabled        bool
 	Port              int
@@ -36,24 +34,26 @@ type CAFlags struct {
 	AdminUser         string
 	AdminPass         string
 	CAHomeVolumeMount string
-	ContainerName     string
 	DockerNetwork     string
 	ImageTag          string
+	// ContainerName     string
 }
-
-var caFlags CAFlags
 
 // Deployment files path
 var caDepPath = ""
 var dockerComposeFileName = ""
 
-// caCmd represents the ca command
-var caCmd = &cobra.Command{
+// deployCaCmd represents the ca command
+var deployCaCmd = &cobra.Command{
 	Use:   "ca",
 	Short: "Deploys CA",
-	Long:  `Deploys Hyperledfer Fabric Certificate Authority (CA)`,
+	Long:  `Deploys Hyperledger Fabric Certificate Authority (CA)`,
+	Args: func(cmd *cobra.Command, args []string) (err error) {
+		// container name greater than 2 chars..
+		return
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		preProcess()
+		preRunDepCa()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		deployCA()
@@ -61,20 +61,20 @@ var caCmd = &cobra.Command{
 }
 
 func init() {
-	deployCmd.AddCommand(caCmd)
-	caCmd.Flags().StringVarP(&caFlags.CaName, "name", "n", "", "Name of the CA to deploy. This name will be used when registering and enrolling certs (required)")
-	caCmd.Flags().BoolVarP(&caFlags.TLSEnabled, "tls", "t", false, "Enable TLS")
-	caCmd.Flags().IntVarP(&caFlags.Port, "port", "p", 8054, "CA server port inside docker container")
-	caCmd.Flags().IntVarP(&caFlags.ExternalPort, "eport", "e", -1, "CA server port mapping to container's host")
-	caCmd.Flags().StringVarP(&caFlags.AdminUser, "admin", "a", "admin", "CA admin username")
-	caCmd.Flags().StringVarP(&caFlags.AdminPass, "pass", "s", "adminpw", "CA admin password or secret")
-	// caCmd.Flags().StringVarP(&caFlags.CAHomeVolumeMount, "volume-mount-path", "v", "", "Host system path to mount CA home directory")
-	caCmd.Flags().StringVarP(&caFlags.ContainerName, "container-name", "c", "", "Docker container name")
-	caCmd.Flags().StringVarP(&caFlags.DockerNetwork, "docker-network", "d", "hlfd", "Docker network name")
-	caCmd.Flags().StringVarP(&caFlags.ImageTag, "image-tag", "i", "latest", "Hyperledger CA docker image tag")
+	deployCmd.AddCommand(deployCaCmd)
+	deployCaCmd.Flags().StringVarP(&depCaFlags.CaName, "name", "n", "", "Name of the CA to deploy. This name will be used when registering and enrolling certs (required)")
+	deployCaCmd.Flags().BoolVarP(&depCaFlags.TLSEnabled, "tls", "t", false, "Enable TLS")
+	deployCaCmd.Flags().IntVarP(&depCaFlags.Port, "port", "p", 8054, "CA server port inside docker container")
+	deployCaCmd.Flags().IntVarP(&depCaFlags.ExternalPort, "eport", "e", -1, "CA server port mapping to container's host")
+	deployCaCmd.Flags().StringVarP(&depCaFlags.AdminUser, "admin", "a", "admin", "CA admin username")
+	deployCaCmd.Flags().StringVarP(&depCaFlags.AdminPass, "pass", "s", "adminpw", "CA admin password or secret")
+	// deployCaCmd.Flags().StringVarP(&depCaFlags.CAHomeVolumeMount, "volume-mount-path", "v", "", "Host system path to mount CA home directory")
+	// deployCaCmd.Flags().StringVarP(&depCaFlags.ContainerName, "container-name", "c", "", "Docker container name")
+	deployCaCmd.Flags().StringVarP(&depCaFlags.DockerNetwork, "docker-network", "d", "hlfd", "Docker network name")
+	deployCaCmd.Flags().StringVarP(&depCaFlags.ImageTag, "image-tag", "i", "latest", "Hyperledger CA docker image tag")
 
 	// Required
-	caCmd.MarkFlagRequired("name")
+	deployCaCmd.MarkFlagRequired("name")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
@@ -86,28 +86,30 @@ func init() {
 	// deployCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func preProcess() {
+func preRunDepCa() {
 	// Fill in optional flags
-	if caFlags.ContainerName == "" {
-		caFlags.ContainerName = caFlags.CaName
-	}
-	if caFlags.ExternalPort < 0 { // Check allowed ports as per standards
-		caFlags.ExternalPort = caFlags.Port
+	// if depCaFlags.ContainerName == "" {
+	// 	depCaFlags.ContainerName = depCaFlags.CaName
+	// }
+	if depCaFlags.ExternalPort < 0 { // Check allowed ports as per standards
+		depCaFlags.ExternalPort = depCaFlags.Port
 	}
 
 	// Create folders for storing CA deployment files
-	caDepPath = path.Join(hlfdPath, caDepFolder, caFlags.ContainerName)
+	caDepPath = path.Join(hlfdPath, caDepFolder, depCaFlags.CaName)
+	// Check if CA already exists
+	throwIfFileExists(caDepPath)
 	err := os.MkdirAll(caDepPath, commonFilUmask)
-	checkOtherThanFileExistsError(err)
+	throwOtherThanFileExistError(err)
 
-	if caFlags.CAHomeVolumeMount == "" {
-		caFlags.CAHomeVolumeMount = caDepPath + "/ca-home"
+	if depCaFlags.CAHomeVolumeMount == "" {
+		depCaFlags.CAHomeVolumeMount = path.Join(caDepPath, caHomeFolder)
 	}
 
 	// Create volume-mount path directories
-	fullPath := caFlags.CAHomeVolumeMount
+	fullPath := depCaFlags.CAHomeVolumeMount
 	err = os.MkdirAll(fullPath, commonFilUmask)
-	checkOtherThanFileExistsError(err)
+	throwOtherThanFileExistError(err)
 
 	// Set variables
 	dockerComposeFileName = "docker-compose.yaml"
@@ -115,7 +117,7 @@ func preProcess() {
 }
 
 func deployCA() {
-	fmt.Println("Deploying CA...", caFlags)
+	fmt.Println("Deploying CA...", depCaFlags)
 	// Create yaml file
 	yamlB := generateCAYAMLBytes()
 	// Create necessary dir and store file
@@ -133,28 +135,28 @@ func generateCAYAMLBytes() (yamlB []byte) {
 	yamlObj := Object{
 		"version": "2",
 		"networks": Object{
-			caFlags.DockerNetwork: Object{},
+			depCaFlags.DockerNetwork: Object{},
 		},
 		"services": Object{
-			caFlags.ContainerName: Object{
+			depCaFlags.CaName: Object{
 				// "env_file": ".env",
-				"image": "hyperledger/fabric-ca:" + caFlags.ImageTag,
+				"image": "hyperledger/fabric-ca:" + depCaFlags.ImageTag,
 				"environment": []string{
 					"FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
-					"FABRIC_CA_SERVER_CA_NAME=" + caFlags.CaName,
-					"FABRIC_CA_SERVER_TLS_ENABLED=" + strconv.FormatBool(caFlags.TLSEnabled),
-					"FABRIC_CA_SERVER_PORT=" + strconv.FormatInt(int64(caFlags.Port), 10),
+					"FABRIC_CA_SERVER_CA_NAME=" + depCaFlags.CaName,
+					"FABRIC_CA_SERVER_TLS_ENABLED=" + strconv.FormatBool(depCaFlags.TLSEnabled),
+					"FABRIC_CA_SERVER_PORT=" + strconv.FormatInt(int64(depCaFlags.Port), 10),
 				},
 				"ports": []string{
-					strconv.FormatInt(int64(caFlags.ExternalPort), 10) + ":" + strconv.FormatInt(int64(caFlags.Port), 10),
+					strconv.FormatInt(int64(depCaFlags.ExternalPort), 10) + ":" + strconv.FormatInt(int64(depCaFlags.Port), 10),
 				},
 				"command": `sh -c 'fabric-ca-server start -b $` + CaAdminEnv + `:$` + CaAdminPassEnv + ` -d'`,
 				"volumes": []string{
-					caFlags.CAHomeVolumeMount + ":/etc/hyperledger/fabric-ca-server",
+					depCaFlags.CAHomeVolumeMount + ":/etc/hyperledger/fabric-ca-server",
 				},
-				"container_name": caFlags.ContainerName,
+				"container_name": depCaFlags.CaName,
 				"networks": []string{
-					caFlags.DockerNetwork,
+					depCaFlags.DockerNetwork,
 				},
 			},
 		},
@@ -168,10 +170,9 @@ func generateCAYAMLBytes() (yamlB []byte) {
 }
 
 func generateCAEnvBytes() (envB []byte) {
-	env := `
-		` + CaAdminEnv + `=` + caFlags.AdminUser + `
-		` + CaAdminPassEnv + `=` + caFlags.AdminPass + `
-	`
+	env := CaAdminEnv + `=` + depCaFlags.AdminUser + `
+` + CaAdminPassEnv + `=` + depCaFlags.AdminPass + `
+`
 
 	envB = []byte(env)
 
@@ -181,26 +182,8 @@ func generateCAEnvBytes() (envB []byte) {
 func setEnv() {
 	// CA Admin User
 	cmd := `export`
-	arg := CaAdminEnv + `=` + caFlags.AdminUser
+	arg := CaAdminEnv + `=` + depCaFlags.AdminUser
 	execute(cmd, arg)
-	arg = CaAdminPassEnv + `=` + caFlags.AdminPass
+	arg = CaAdminPassEnv + `=` + depCaFlags.AdminPass
 	execute(cmd, arg)
-}
-
-func execute(dir string, comdS string, args ...string) {
-	comd := exec.Command(comdS, args...)
-	if dir != "" {
-		comd.Dir = dir
-	}
-	// stdin, err := comd.StdinPipe()
-	// go func() {
-	// 	defer stdin.Close()
-	// 	io.WriteString(stdin, "an old falcon")
-	// }()
-	// stdout, err := comd.StdoutPipe()
-	// cobra.CheckErr(err)
-
-	out, err := comd.CombinedOutput()
-	fmt.Println(string(out))
-	cobra.CheckErr(err)
 }

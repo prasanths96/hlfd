@@ -27,7 +27,6 @@ import (
 )
 
 var cfgFile string
-var hlfdPath string
 
 // Root flags
 type RootFlags struct {
@@ -116,6 +115,6 @@ func initHlfdPath() {
 	cobra.CheckErr(err)
 	fullPath := path.Join(home, ".hlfd")
 	err = os.Mkdir(fullPath, 0700)
-	checkOtherThanFileExistsError(err)
+	throwOtherThanFileExistError(err)
 	hlfdPath = fullPath
 }
