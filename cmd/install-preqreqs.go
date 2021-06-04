@@ -132,8 +132,8 @@ func installDockerCompose() {
 	}
 
 	fmt.Println("Installing docker-compose...")
-	kernelname := strings.Trim(string(execAndGetOutput("", "uname -s")), "\n")
-	machineHardwareName := strings.Trim(string(execAndGetOutput("", "uname -m")), "\n")
+	kernelname := strings.Trim(string(execAndGetOutput("", "uname", "-s")), "\n")
+	machineHardwareName := strings.Trim(string(execAndGetOutput("", "uname", "-m")), "\n")
 	execute("", "sudo", "curl", "-L", "https://github.com/docker/compose/releases/download/"+dockerComposeVersion+"/docker-compose-"+kernelname+"-"+machineHardwareName, "-o", "/usr/local/bin/docker-compose")
 	fmt.Println("2")
 	execute("", "sudo", "chmod", "+x", "/usr/local/bin/docker-compose")
