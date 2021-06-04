@@ -105,7 +105,7 @@ func installDocker() {
 	fmt.Println("Running CURL.............................................")
 	// execute("", "sudo", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg", "|", "sudo", "apt-key", "add", "-")
 	// execute("", "sudo", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg>>/etc/apt/trusted.gpg")
-	execute("", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg>>~/dockergpg")
+	// execute("", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg>>~/dockergpg")
 	gpgBytes := execAndGetOutput("", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg")
 	writeBytesToFile("dockergpg", hlfdPath, gpgBytes)
 	execute("", "sudo", "apt-key", "add", path.Join(hlfdPath, "dockergpg"))
