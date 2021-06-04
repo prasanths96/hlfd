@@ -30,6 +30,14 @@ func writeBytesToFile(fileName string, pathS string, dataB []byte) {
 	cobra.CheckErr(err)
 }
 
+func appendStringToFile(fileName string, pathS string, data string) {
+	file, err := os.OpenFile(path.Join(pathS, fileName), os.O_APPEND|os.O_WRONLY, 0644)
+	cobra.CheckErr(err)
+	defer file.Close()
+	_, err = file.WriteString(data)
+	cobra.CheckErr(err)
+}
+
 func execute(dir string, comdS string, args ...string) {
 	comd := exec.Command(comdS, args...)
 	if dir != "" {

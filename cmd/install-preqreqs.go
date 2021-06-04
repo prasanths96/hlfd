@@ -148,13 +148,15 @@ func installGo() {
 	}
 
 	fmt.Println("Installing go...")
-	execute("~/", "wget", "https://dl.google.com/go/go"+goVersion+".linux-amd64.tar.gz")
-	execute("~/", "tar", "-xvf", "go"+goVersion+".linux-amd64.tar.gz")
-	execute("~/", "rm", "/usr/local/go", "-rf")
-	execute("~/", "mv", "go", "/usr/local")
-	execute("~/", "echo", "'export GOROOT=/usr/local/go'>>~/.profile")
-	execute("~/", "echo", "'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH'>>~/.profile")
-	execute("~/", "source", "~/.profile")
-
+	execute(hlfdPath, "wget", "https://dl.google.com/go/go"+goVersion+".linux-amd64.tar.gz")
+	execute(hlfdPath, "tar", "-xvf", "go"+goVersion+".linux-amd64.tar.gz")
+	execute("", "sudo", "rm", "/usr/local/go", "-rf")
+	execute(hlfdPath, "sudo", "mv", "go", "/usr/local")
+	updateProfile := `export GOROOT=/usr/local/go
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH`
+	appendStringToFile(".profile", homeDir, updateProfile)
+	// execute(hlfdPath, "echo", "'export GOROOT=/usr/local/go'>>~/.profile")
+	// execute(hlfdPath, "echo", "'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH'>>~/.profile")
+	execute(hlfdPath, "source", path.Join(homeDir, ".profile"))
 	execute("", "go", "version")
 }

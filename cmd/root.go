@@ -27,6 +27,7 @@ import (
 )
 
 var cfgFile string
+var homeDir string
 
 // Root flags
 type RootFlags struct {
@@ -117,4 +118,5 @@ func initHlfdPath() {
 	err = os.Mkdir(fullPath, 0700)
 	throwOtherThanFileExistError(err)
 	hlfdPath = fullPath
+	homeDir = home
 }
