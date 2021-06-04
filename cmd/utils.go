@@ -37,7 +37,7 @@ func execute(dir string, comdS string, args ...string) {
 	}
 	var out outstream
 	comd.Stdout = out
-
+	comd.Stderr = out
 	// out, err := comd.CombinedOutput()
 	// fmt.Println(string(out))
 	// cobra.CheckErr(err)

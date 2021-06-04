@@ -117,7 +117,7 @@ func installDocker() {
 	fmt.Println("Running APT INSTALL.............................................")
 	execute("", "sudo", "apt", "install", "docker-ce", "-y")
 	fmt.Println("Running APT USERMOD.............................................")
-	username := strings.Trim(string(execAndGetOutput("", "whoami")), " ")
+	username := strings.Trim(string(execAndGetOutput("", "whoami")), "\n")
 	fmt.Println("Received username:", username)
 	execute("", "sudo", "usermod", "-aG", "docker", username)
 
