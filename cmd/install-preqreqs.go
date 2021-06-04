@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -116,8 +117,8 @@ func installDocker() {
 	fmt.Println("Running APT INSTALL.............................................")
 	execute("", "sudo", "apt", "install", "docker-ce", "-y")
 	fmt.Println("Running APT USERMOD.............................................")
-	username := string(execAndGetOutput("", "whoami"))
-	fmt.Println("Received username: ", username)
+	username := strings.Trim(string(execAndGetOutput("", "whoami")), " ")
+	fmt.Println("Received username:", username)
 	execute("", "sudo", "usermod", "-aG", "docker", username)
 
 	fmt.Println("Running DOCKER VERSION.............................................")
