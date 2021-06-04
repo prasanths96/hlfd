@@ -56,7 +56,7 @@ func installPrereqs() {
 	// Install indiviual things
 
 	// Install all
-	// execute("", "sudo", "apt", "update") // Don't forget to un-comment
+	execute("", "sudo", "apt", "update", "-y") // Don't forget to un-comment
 	installGit()
 	installCurl()
 	installBuildEssential()
