@@ -46,8 +46,8 @@ var dockerComposeFileName = ""
 // deployCaCmd represents the ca command
 var deployCaCmd = &cobra.Command{
 	Use:   "ca",
-	Short: "Deploys CA",
-	Long:  `Deploys Hyperledger Fabric Certificate Authority (CA)`,
+	Short: "Deploys CA.",
+	Long:  `Deploys Hyperledger Fabric Certificate Authority (CA).`,
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		// container name greater than 2 chars..
 		return

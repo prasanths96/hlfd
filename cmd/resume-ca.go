@@ -30,8 +30,8 @@ var resumeCaFlags struct {
 // caCmd represents the ca command
 var resumeCaCmd = &cobra.Command{
 	Use:   "ca",
-	Short: "Resumes CA container",
-	Long:  `Resumes Hyperledger Fabric Certificate Authority (CA) container`,
+	Short: "Resumes CA container.",
+	Long:  `Resumes Hyperledger Fabric Certificate Authority (CA) container.`,
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		return
 	},

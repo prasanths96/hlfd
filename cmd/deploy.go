@@ -24,8 +24,11 @@ import (
 // deployCmd represents the deploy command
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "Deploy HLF components",
-	Long:  `Deploy HLF components including: ca, peer, orderer`,
+	Short: "Deploys components of HLF.",
+	Long: `Deploys Hyperledger Fabric components deployed in docker containers such as:
+	CA
+	Peer
+	Orderer.`,
 	// Args: func(cmd *cobra.Command, args []string) error {
 	// 	// err := cobra.NoArgs(cmd, args)
 	// 	// if err != nil {

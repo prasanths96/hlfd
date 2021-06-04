@@ -29,8 +29,8 @@ var installPrereqsFlags struct {
 // caCmd represents the ca command
 var installPrereqsCmd = &cobra.Command{
 	Use:   "prereqs",
-	Short: "Installs pre-requirements",
-	Long:  `Installs pre-requirements needed for deploying Hyperledger Fabric components`,
+	Short: "Installs pre-requirements.",
+	Long:  `Installs pre-requirements needed for deploying Hyperledger Fabric components.`,
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		return
 	},
@@ -66,11 +66,11 @@ func installPrereqs() {
 	installDockerCompose()
 	installGo()
 
-	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++")
+	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 	fmt.Println("Installation success!")
-	fmt.Println(`Run "source ~/.profile" or re-login to access the following commands:`)
+	fmt.Println(`Run "source ~/.profile" or re-login to access the following commands, if not previously installed:`)
 	fmt.Println("\t- go")
-	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++")
+	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 }
 
 // Different pre-reqs

@@ -22,13 +22,11 @@ import (
 // resumeCmd represents the resume command
 var resumeCmd = &cobra.Command{
 	Use:   "resume",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Resumes components of HLF.",
+	Long: `Resumes Hyperledger Fabric components deployed in docker containers such as:
+	CA
+	Peer
+	Orderer.`,
 }
 
 func init() {
