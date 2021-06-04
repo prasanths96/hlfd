@@ -65,6 +65,12 @@ func installPrereqs() {
 	installDocker()
 	installDockerCompose()
 	installGo()
+
+	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++")
+	fmt.Println("Installation success!")
+	fmt.Println(`Run "source ~/.profile" or re-login to access the following commands:`)
+	fmt.Println("\t- go")
+	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++")
 }
 
 // Different pre-reqs
@@ -103,25 +109,19 @@ func installDocker() {
 
 	fmt.Println("Installing docker...")
 	execute("", "sudo", "apt", "install", "apt-transport-https", "ca-certificates", "curl", "software-properties-common", "-y")
-	fmt.Println("Running CURL.............................................")
 	// execute("", "sudo", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg", "|", "sudo", "apt-key", "add", "-")
 	// execute("", "sudo", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg>>/etc/apt/trusted.gpg")
 	// execute("", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg>>~/dockergpg")
 	gpgBytes := execAndGetOutput("", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg")
 	writeBytesToFile("dockergpg", hlfdPath, gpgBytes)
 	execute("", "sudo", "apt-key", "add", path.Join(hlfdPath, "dockergpg"))
-	fmt.Println("Running ADD_APT_REPOSITORY.............................................")
 	execute("", "sudo", "add-apt-repository", "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable")
-	fmt.Println("Running APT UPDATE.............................................")
 	execute("", "sudo", "apt", "update", "-y")
-	fmt.Println("Running APT INSTALL.............................................")
 	execute("", "sudo", "apt", "install", "docker-ce", "-y")
-	fmt.Println("Running APT USERMOD.............................................")
 	username := strings.Trim(string(execAndGetOutput("", "whoami")), "\n")
 	fmt.Println("Received username:", username)
 	execute("", "sudo", "usermod", "-aG", "docker", username)
 
-	fmt.Println("Running DOCKER VERSION.............................................")
 	execute("", "docker", "--version")
 }
 
@@ -135,7 +135,6 @@ func installDockerCompose() {
 	kernelname := strings.Trim(string(execAndGetOutput("", "uname", "-s")), "\n")
 	machineHardwareName := strings.Trim(string(execAndGetOutput("", "uname", "-m")), "\n")
 	execute("", "sudo", "curl", "-L", "https://github.com/docker/compose/releases/download/"+dockerComposeVersion+"/docker-compose-"+kernelname+"-"+machineHardwareName, "-o", "/usr/local/bin/docker-compose")
-	fmt.Println("2")
 	execute("", "sudo", "chmod", "+x", "/usr/local/bin/docker-compose")
 
 	execute("", "docker-compose", "--version")
@@ -152,14 +151,13 @@ func installGo() {
 	execute(hlfdPath, "tar", "-xvf", "go"+goVersion+".linux-amd64.tar.gz")
 	execute("", "sudo", "rm", "/usr/local/go", "-rf")
 	execute(hlfdPath, "sudo", "mv", "go", "/usr/local")
-	updateProfile := `export GOROOT=/usr/local/go
+	updateProfile := `
+export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 `
 	appendStringToFile(".profile", homeDir, updateProfile)
 	// execute(hlfdPath, "echo", "'export GOROOT=/usr/local/go'>>~/.profile")
 	// execute(hlfdPath, "echo", "'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH'>>~/.profile")
 	// execute(hlfdPath, "source", path.Join(homeDir, ".profile"))
-	execute("", "export", "GOROOT=/usr/local/go")
-	execute("", "export", "PATH=$GOPATH/bin:$GOROOT/bin:$PATH")
-	execute("", "go", "version")
+	// execute("", "go", "version")
 }
