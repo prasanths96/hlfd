@@ -116,7 +116,7 @@ func installDocker() {
 	fmt.Println("Running APT INSTALL.............................................")
 	execute("", "sudo", "apt", "install", "docker-ce", "-y")
 	fmt.Println("Running APT USERMOD.............................................")
-	execute("", "sudo", "usermod", "-aG", "docker ${USER}")
+	execute("", "sudo", "usermod", "-aG", "docker", "${USER}")
 
 	fmt.Println("Running DOCKER VERSION.............................................")
 	execute("", "docker", "--version")
