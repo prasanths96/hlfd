@@ -35,15 +35,42 @@ func execute(dir string, comdS string, args ...string) {
 	if dir != "" {
 		comd.Dir = dir
 	}
-	// stdin, err := comd.StdinPipe()
-	// go func() {
-	// 	defer stdin.Close()
-	// 	io.WriteString(stdin, "an old falcon")
-	// }()
+	var out outstream
+	comd.Stdout = out
+
+	// out, err := comd.CombinedOutput()
+	// fmt.Println(string(out))
+	// cobra.CheckErr(err)
+
+	// err := comd.Run()
+	// cobra.CheckErr(err)
+
 	// stdout, err := comd.StdoutPipe()
 	// cobra.CheckErr(err)
 
-	out, err := comd.CombinedOutput()
-	fmt.Println(string(out))
+	err := comd.Start()
 	cobra.CheckErr(err)
+
+	// _, err = ioutil.ReadAll(stdout)
+	// cobra.CheckErr(err)
+
+	err = comd.Wait()
+	cobra.CheckErr(err)
+}
+
+type outstream struct{}
+
+func (out outstream) Write(p []byte) (int, error) {
+	fmt.Print(string(p))
+	return len(p), nil
+}
+
+func isCmdExists(comdS string) (ok bool) {
+	comd := exec.Command("which", comdS)
+	out, _ := comd.CombinedOutput()
+	// cobra.CheckErr(err) // Exit status 1 for command not exist
+	if len(out) != 0 { // If not empty
+		ok = true
+	}
+	return
 }
