@@ -132,7 +132,7 @@ func installDockerCompose() {
 	}
 
 	fmt.Println("Installing docker-compose...")
-	execute("", "curl", "-L", "https://github.com/docker/compose/releases/download/"+dockerComposeVersion+"/docker-compose-`uname -s`-`uname -m`", "-o", "/usr/local/bin/docker-compose")
+	execute("", "sudo", "curl", "-L", "https://github.com/docker/compose/releases/download/"+dockerComposeVersion+"/docker-compose-`uname -s`-`uname -m`", "-o", "/usr/local/bin/docker-compose")
 	fmt.Println("2")
 	execute("", "sudo", "chmod", "+x", "/usr/local/bin/docker-compose")
 
