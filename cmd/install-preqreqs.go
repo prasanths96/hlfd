@@ -117,6 +117,7 @@ func installDocker() {
 	execute("", "sudo", "apt", "install", "docker-ce", "-y")
 	fmt.Println("Running APT USERMOD.............................................")
 	username := string(execAndGetOutput("", "whoami"))
+	fmt.Println("Received username: ", username)
 	execute("", "sudo", "usermod", "-aG", "docker", username)
 
 	fmt.Println("Running DOCKER VERSION.............................................")
@@ -131,6 +132,7 @@ func installDockerCompose() {
 
 	fmt.Println("Installing docker-compose...")
 	execute("", "curl", "-L", "https://github.com/docker/compose/releases/download/"+dockerComposeVersion+"/docker-compose-`uname -s`-`uname -m`", "-o", "/usr/local/bin/docker-compose")
+	fmt.Println("2")
 	execute("", "sudo", "chmod", "+x", "/usr/local/bin/docker-compose")
 
 	execute("", "docker-compose", "--version")

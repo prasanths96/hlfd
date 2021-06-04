@@ -49,19 +49,13 @@ func execute(dir string, comdS string, args ...string) {
 	// cobra.CheckErr(err)
 
 	err := comd.Start()
-	if err != nil {
-		fmt.Println(err.Error())
-		cobra.CheckErr(err)
-	}
+	cobra.CheckErr(err)
 
 	// _, err = ioutil.ReadAll(stdout)
 	// cobra.CheckErr(err)
 
 	err = comd.Wait()
-	if err != nil {
-		fmt.Println(err.Error())
-		cobra.CheckErr(err)
-	}
+	cobra.CheckErr(err)
 }
 
 func execAndGetOutput(dir string, comdS string, args ...string) (out []byte) {
