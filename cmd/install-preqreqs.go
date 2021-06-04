@@ -153,10 +153,13 @@ func installGo() {
 	execute("", "sudo", "rm", "/usr/local/go", "-rf")
 	execute(hlfdPath, "sudo", "mv", "go", "/usr/local")
 	updateProfile := `export GOROOT=/usr/local/go
-export PATH=$GOPATH/bin:$GOROOT/bin:$PATH`
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+`
 	appendStringToFile(".profile", homeDir, updateProfile)
 	// execute(hlfdPath, "echo", "'export GOROOT=/usr/local/go'>>~/.profile")
 	// execute(hlfdPath, "echo", "'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH'>>~/.profile")
 	// execute(hlfdPath, "source", path.Join(homeDir, ".profile"))
+	execute("", "export", "GOROOT=/usr/local/go")
+	execute("", "export", "PATH=$GOPATH/bin:$GOROOT/bin:$PATH")
 	execute("", "go", "version")
 }
