@@ -157,6 +157,6 @@ export PATH=$GOPATH/bin:$GOROOT/bin:$PATH`
 	appendStringToFile(".profile", homeDir, updateProfile)
 	// execute(hlfdPath, "echo", "'export GOROOT=/usr/local/go'>>~/.profile")
 	// execute(hlfdPath, "echo", "'export PATH=$GOPATH/bin:$GOROOT/bin:$PATH'>>~/.profile")
-	execute(hlfdPath, "source", path.Join(homeDir, ".profile"))
+	// execute(hlfdPath, "source", path.Join(homeDir, ".profile"))
 	execute("", "go", "version")
 }
