@@ -102,7 +102,7 @@ func installDocker() {
 	fmt.Println("Installing docker...")
 	execute("", "sudo", "apt", "install", "apt-transport-https", "ca-certificates", "curl", "software-properties-common", "-y")
 	execute("", "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg", "|", "sudo", "apt-key", "add", "-")
-	execute("", "sudo", "add-apt-repository", `"deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"`)
+	execute("", "sudo", "add-apt-repository", "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable")
 	execute("", "sudo", "apt", "update", "-y")
 	execute("", "sudo", "apt", "install", "docker-ce", "-y")
 	execute("", "sudo", "usermod", "-aG", "docker ${USER}")
