@@ -58,6 +58,16 @@ func execute(dir string, comdS string, args ...string) {
 	cobra.CheckErr(err)
 }
 
+func execAndGetOutput(dir string, comdS string, args ...string) (out []byte) {
+	comd := exec.Command(comdS, args...)
+	if dir != "" {
+		comd.Dir = dir
+	}
+	out, err := comd.Output()
+	cobra.CheckErr(err)
+	return
+}
+
 type outstream struct{}
 
 func (out outstream) Write(p []byte) (int, error) {
