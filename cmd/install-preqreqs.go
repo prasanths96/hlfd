@@ -102,6 +102,9 @@ func installBuildEssential() {
 }
 
 func installDocker() {
+	// Notes: Problems with WSL: systemd not present in wsl so systemctl wont work. Instead, init is present.
+	// use "service docker start", "service docker status"
+	// So check if systemd is present
 	fmt.Println("Checking docker...")
 	if isCmdExists("docker") {
 		return

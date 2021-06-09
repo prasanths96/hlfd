@@ -61,6 +61,7 @@ var deployCaCmd = &cobra.Command{
 }
 
 func init() {
+	// Options to open firewall port for this
 	deployCmd.AddCommand(deployCaCmd)
 	deployCaCmd.Flags().StringVarP(&depCaFlags.CaName, "name", "n", "", "Name of the CA to deploy. This name will be used when registering and enrolling certs (required)")
 	deployCaCmd.Flags().BoolVarP(&depCaFlags.TLSEnabled, "tls", "t", false, "Enable TLS")
