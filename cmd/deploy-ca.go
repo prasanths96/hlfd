@@ -37,6 +37,7 @@ var depCaFlags struct {
 	DockerNetwork     string
 	ImageTag          string
 	// ContainerName     string
+	ForceTerminate bool
 }
 
 // Deployment files path
@@ -73,6 +74,7 @@ func init() {
 	// deployCaCmd.Flags().StringVarP(&depCaFlags.ContainerName, "container-name", "c", "", "Docker container name")
 	deployCaCmd.Flags().StringVarP(&depCaFlags.DockerNetwork, "docker-network", "d", "hlfd", "Docker network name")
 	deployCaCmd.Flags().StringVarP(&depCaFlags.ImageTag, "image-tag", "i", "latest", "Hyperledger CA docker image tag")
+	deployCaCmd.Flags().BoolVarP(&depCaFlags.ForceTerminate, "force", "f", false, "Force deploy or terminate ca if ca with given name already exists")
 
 	// Required
 	deployCaCmd.MarkFlagRequired("name")
@@ -94,6 +96,13 @@ func preRunDepCa() {
 	// }
 	if depCaFlags.ExternalPort < 0 { // Check allowed ports as per standards
 		depCaFlags.ExternalPort = depCaFlags.Port
+	}
+
+	// If force terminate existing ca, if flag is set
+	if depCaFlags.ForceTerminate {
+		terminateCaFlags.Name = depCaFlags.CaName
+		terminateCaFlags.Quiet = true
+		terminateCA()
 	}
 
 	// Create folders for storing CA deployment files

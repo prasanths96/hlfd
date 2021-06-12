@@ -24,7 +24,8 @@ import (
 )
 
 var terminateCaFlags struct {
-	Name string
+	Name  string
+	Quiet bool // Quitely ignore known acceptable errors
 }
 
 // caCmd represents the ca command
@@ -46,6 +47,7 @@ var terminateCaCmd = &cobra.Command{
 func init() {
 	terminateCmd.AddCommand(terminateCaCmd)
 	terminateCaCmd.Flags().StringVarP(&terminateCaFlags.Name, "name", "n", "", "CA name")
+	terminateCaCmd.Flags().BoolVarP(&terminateCaFlags.Quiet, "queit", "q", false, "CA name")
 
 	// Required
 	terminateCaCmd.MarkFlagRequired("name")
@@ -60,6 +62,10 @@ func terminateCA() {
 	// Check if Ca folder exists
 	fullPath := path.Join(hlfdPath, caDepFolder, terminateCaFlags.Name)
 	_, err := os.Stat(fullPath)
+	// Return quietly if no such ca exists (if quiet mode is active)
+	if err != nil && terminateCaFlags.Quiet {
+		return
+	}
 	cobra.CheckErr(err)
 
 	// Run docker-compose stop
