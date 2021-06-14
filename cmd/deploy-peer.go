@@ -63,7 +63,7 @@ var peerPass = uuid.New().String()
 var peerMspPath = ""
 var peerTlsPath = ""
 
-// deployPeerCmd represents the ca command
+//
 var deployPeerCmd = &cobra.Command{
 	Use:   "peer",
 	Short: "Deploys Peer.",
@@ -86,7 +86,7 @@ func init() {
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.PeerName, "name", "n", "", "Name of the Peer to deploy (required)")
 	deployPeerCmd.Flags().BoolVarP(&depPeerFlags.TLSEnabled, "tls", "t", false, "Enable TLS")
 	deployPeerCmd.Flags().IntVarP(&depPeerFlags.Port, "port", "p", 7051, "Peer port inside docker container")
-	deployPeerCmd.Flags().IntVarP(&depPeerFlags.ExternalPort, "eport", "e", depPeerFlags.Port, "Peer port mapping to container's host")
+	deployPeerCmd.Flags().IntVarP(&depPeerFlags.ExternalPort, "eport", "e", -1, "Peer port mapping to container's host")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.DockerNetwork, "docker-network", "d", "hlfd", "Docker network name")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.ImageTag, "image-tag", "i", "2.2", "Hyperledger Peer docker image tag")
 	deployPeerCmd.Flags().BoolVarP(&depPeerFlags.ForceTerminate, "force", "f", false, "Force deploy or terminate peer if peer with given name already exists")
@@ -139,11 +139,11 @@ func preRunDepPeer() {
 		depPeerFlags.ChaincodeAddr = depPeerFlags.PeerName + `:7052`
 	}
 
-	// If force terminate existing, if flag is set
+	// Force terminate existing, if flag is set
 	if depPeerFlags.ForceTerminate {
-		// terminateCaFlags.Name = depPeerFlags.PeerName
-		// terminateCaFlags.Quiet = true
-		// terminatePeer()
+		terminatePeerFlags.Name = depPeerFlags.PeerName
+		terminatePeerFlags.Quiet = true
+		terminatePeer()
 	}
 
 	// Create folders for storing deployment files
@@ -172,7 +172,7 @@ func preRunDepPeer() {
 
 	//
 	if depPeerFlags.PeerLogging != "INFO" && depPeerFlags.PeerLogging != "DEBUG" {
-		err := fmt.Errorf("Invalid peer-log option: %v", depPeerFlags.PeerLogging)
+		err := fmt.Errorf("invalid peer-log option: %v", depPeerFlags.PeerLogging)
 		cobra.CheckErr(err)
 	}
 
@@ -461,7 +461,7 @@ func getUserEncodedCaUrl(username string, pass string) (fullUrl string) {
 	// parts[0] = https: , parts[1] = localhost:27054
 	parts := strings.SplitN(depPeerFlags.CaAddr, `//`, 2)
 	if len(parts) < 2 {
-		err := fmt.Errorf(`Invalid ca address format. Correct format sample: "https://localhost:27054"`)
+		err := fmt.Errorf(`invalid ca address format. Correct format sample: "https://localhost:27054"`)
 		cobra.CheckErr(err)
 	}
 

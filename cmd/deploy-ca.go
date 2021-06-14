@@ -98,7 +98,7 @@ func preRunDepCa() {
 		depCaFlags.ExternalPort = depCaFlags.Port
 	}
 
-	// If force terminate existing ca, if flag is set
+	// Force terminate existing ca, if flag is set
 	if depCaFlags.ForceTerminate {
 		terminateCaFlags.Name = depCaFlags.CaName
 		terminateCaFlags.Quiet = true

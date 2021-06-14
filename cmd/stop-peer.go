@@ -23,45 +23,45 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var resumeCaFlags struct {
+var stopPeerFlags struct {
 	Name string
 }
 
-// caCmd represents the ca command
-var resumeCaCmd = &cobra.Command{
-	Use:   "ca",
-	Short: "Resumes CA container.",
-	Long:  `Resumes Hyperledger Fabric Certificate Authority (CA) container.`,
+//
+var stopPeerCmd = &cobra.Command{
+	Use:   "peer",
+	Short: "Stops Peer container.",
+	Long:  `Stops Hyperledger Fabric Peer container.`,
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		return
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		preRunResumeCa()
+		preRunStopPeer()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		resumeCA()
+		stopPeer()
 	},
 }
 
 func init() {
-	resumeCmd.AddCommand(resumeCaCmd)
-	resumeCaCmd.Flags().StringVarP(&resumeCaFlags.Name, "name", "n", "", "CA name")
+	stopCmd.AddCommand(stopPeerCmd)
+	stopPeerCmd.Flags().StringVarP(&stopPeerFlags.Name, "name", "n", "", "Peer name")
 
 	// Required
-	resumeCaCmd.MarkFlagRequired("name")
+	stopPeerCmd.MarkFlagRequired("name")
 }
 
-func preRunResumeCa() {
+func preRunStopPeer() {
 
 }
 
-func resumeCA() {
-	fmt.Println("Resuming CA...", resumeCaFlags)
-	// Check if Ca folder exists
-	fullPath := path.Join(hlfdPath, caDepFolder, resumeCaFlags.Name)
+func stopPeer() {
+	fmt.Println("Stopping Peer...", stopPeerFlags)
+	// Check if folder exists
+	fullPath := path.Join(hlfdPath, peerDepFolder, stopPeerFlags.Name)
 	_, err := os.Stat(fullPath)
 	cobra.CheckErr(err)
 
-	// Run docker-compose
-	execute(fullPath, "docker-compose", "up", "-d")
+	// Run docker-compose stop
+	execute(fullPath, "docker-compose", "stop")
 }

@@ -23,42 +23,42 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var resumeCaFlags struct {
+var resumePeerFlags struct {
 	Name string
 }
 
-// caCmd represents the ca command
-var resumeCaCmd = &cobra.Command{
-	Use:   "ca",
-	Short: "Resumes CA container.",
-	Long:  `Resumes Hyperledger Fabric Certificate Authority (CA) container.`,
+//
+var resumePeerCmd = &cobra.Command{
+	Use:   "peer",
+	Short: "Resumes Peer container.",
+	Long:  `Resumes Hyperledger Fabric Peer container.`,
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		return
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		preRunResumeCa()
+		preRunResumePeer()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		resumeCA()
+		resumePeer()
 	},
 }
 
 func init() {
-	resumeCmd.AddCommand(resumeCaCmd)
-	resumeCaCmd.Flags().StringVarP(&resumeCaFlags.Name, "name", "n", "", "CA name")
+	resumeCmd.AddCommand(resumePeerCmd)
+	resumePeerCmd.Flags().StringVarP(&resumePeerFlags.Name, "name", "n", "", "Peer name")
 
 	// Required
-	resumeCaCmd.MarkFlagRequired("name")
+	resumePeerCmd.MarkFlagRequired("name")
 }
 
-func preRunResumeCa() {
+func preRunResumePeer() {
 
 }
 
-func resumeCA() {
-	fmt.Println("Resuming CA...", resumeCaFlags)
-	// Check if Ca folder exists
-	fullPath := path.Join(hlfdPath, caDepFolder, resumeCaFlags.Name)
+func resumePeer() {
+	fmt.Println("Resuming Peer...", resumePeerFlags)
+	// Check if folder exists
+	fullPath := path.Join(hlfdPath, peerDepFolder, resumePeerFlags.Name)
 	_, err := os.Stat(fullPath)
 	cobra.CheckErr(err)
 

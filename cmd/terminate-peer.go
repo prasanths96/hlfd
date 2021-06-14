@@ -23,47 +23,47 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var terminateCaFlags struct {
+var terminatePeerFlags struct {
 	Name  string
 	Quiet bool // Quitely ignore known acceptable errors
 }
 
-// caCmd represents the ca command
-var terminateCaCmd = &cobra.Command{
-	Use:   "ca",
-	Short: "Terminates CA container.",
-	Long:  `Terminates Hyperledger Fabric Certificate Authority (CA) container.`,
+//
+var terminatePeerCmd = &cobra.Command{
+	Use:   "peer",
+	Short: "Terminates Peer container.",
+	Long:  `Terminates Hyperledger Fabric Peer container.`,
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		return
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		preRunTerminateCa()
+		preRunTerminatePeer()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		terminateCA()
+		terminatePeer()
 	},
 }
 
 func init() {
-	terminateCmd.AddCommand(terminateCaCmd)
-	terminateCaCmd.Flags().StringVarP(&terminateCaFlags.Name, "name", "n", "", "CA name")
-	terminateCaCmd.Flags().BoolVarP(&terminateCaFlags.Quiet, "quiet", "q", false, "Quietly returns if CA not found")
+	terminateCmd.AddCommand(terminatePeerCmd)
+	terminatePeerCmd.Flags().StringVarP(&terminatePeerFlags.Name, "name", "n", "", "Peer name")
+	terminatePeerCmd.Flags().BoolVarP(&terminatePeerFlags.Quiet, "quiet", "q", false, "Quietly returns if peer not found")
 
 	// Required
-	terminateCaCmd.MarkFlagRequired("name")
+	terminatePeerCmd.MarkFlagRequired("name")
 }
 
-func preRunTerminateCa() {
+func preRunTerminatePeer() {
 
 }
 
-func terminateCA() {
-	fmt.Println("Terminating CA...", terminateCaFlags)
-	// Check if Ca folder exists
-	fullPath := path.Join(hlfdPath, caDepFolder, terminateCaFlags.Name)
+func terminatePeer() {
+	fmt.Println("Terminating Peer...", terminatePeerFlags)
+	// Check if folder exists
+	fullPath := path.Join(hlfdPath, peerDepFolder, terminatePeerFlags.Name)
 	_, err := os.Stat(fullPath)
-	// Return quietly if no such ca exists (if quiet mode is active)
-	if err != nil && terminateCaFlags.Quiet {
+	// Return quietly if no such exists (if quiet mode is active)
+	if err != nil && terminatePeerFlags.Quiet {
 		return
 	}
 	cobra.CheckErr(err)
@@ -71,6 +71,6 @@ func terminateCA() {
 	// Run docker-compose stop
 	execute(fullPath, "docker-compose", "down", "-v", "--rmi", "local")
 
-	// Remove ca folder
-	execute(path.Join(hlfdPath, caDepFolder), "sudo", "rm", "-rf", terminateCaFlags.Name)
+	// Remove folder
+	execute(path.Join(hlfdPath, peerDepFolder), "sudo", "rm", "-rf", terminatePeerFlags.Name)
 }
