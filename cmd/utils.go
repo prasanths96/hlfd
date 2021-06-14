@@ -24,6 +24,15 @@ func throwIfFileExists(path string) {
 	}
 }
 
+func isFileExists(path string) (exists bool) {
+	_, err := os.Stat(path)
+	if err == nil {
+		exists = true
+	}
+
+	return
+}
+
 func writeBytesToFile(fileName string, pathS string, dataB []byte) {
 	// f, err := os.Create(path.Join(pathS, fileName))
 	err := ioutil.WriteFile(path.Join(pathS, fileName), dataB, commonFilUmask)

@@ -42,7 +42,7 @@ var depCaFlags struct {
 
 // Deployment files path
 var caDepPath = ""
-var dockerComposeFileName = ""
+var dockerComposeFileNameCa = ""
 
 // deployCaCmd represents the ca command
 var deployCaCmd = &cobra.Command{
@@ -122,7 +122,7 @@ func preRunDepCa() {
 	throwOtherThanFileExistError(err)
 
 	// Set variables
-	dockerComposeFileName = "docker-compose.yaml"
+	dockerComposeFileNameCa = "docker-compose.yaml"
 
 }
 
@@ -131,7 +131,7 @@ func deployCA() {
 	// Create yaml file
 	yamlB := generateCAYAMLBytes()
 	// Create necessary dir and store file
-	writeBytesToFile(dockerComposeFileName, caDepPath, yamlB)
+	writeBytesToFile(dockerComposeFileNameCa, caDepPath, yamlB)
 	// Create necessary env file
 	envB := generateCAEnvBytes()
 	writeBytesToFile(".env", caDepPath, envB)

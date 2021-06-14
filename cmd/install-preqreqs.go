@@ -60,6 +60,7 @@ func installPrereqs() {
 	// Install all
 	execute("", "sudo", "apt", "update", "-y") // Don't forget to un-comment
 	installGit()
+	installWget()
 	installCurl()
 	installBuildEssential()
 	installDocker()
@@ -83,6 +84,17 @@ func installGit() {
 	fmt.Println("Installing git...")
 	execute("", "sudo", "apt", "install", "git", "-y")
 	execute("", "git", "--version")
+}
+
+func installWget() {
+	fmt.Println("Checking wget...")
+	if isCmdExists("wget") {
+		return
+	}
+
+	fmt.Println("Installing wget...")
+	execute("", "sudo", "apt", "install", "wget", "-y")
+	execute("", "wget", "--version")
 }
 
 func installCurl() {

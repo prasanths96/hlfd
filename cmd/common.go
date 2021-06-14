@@ -8,7 +8,14 @@ type Object map[string]interface{}
 var hlfdPath string
 
 //
-var commonFilUmask = os.FileMode(0777)
+var binFolder = "bin"
+var caClientHomeFolder = "ca-client-home"
+var caClientName = "fabric-ca-client"
+var mspFolder = "msp"
+var tlsFolder = "tls"
+
+//
+var commonFilUmask = os.FileMode(0700)
 
 //
 var caDepFolder = "ca"
@@ -17,6 +24,8 @@ var ordererDepFolder = "orderer"
 
 //
 var caHomeFolder = "ca-home"
+var peerHomeFolder = "peer"
+var ordererHomeFolder = "orderer"
 
 // CA Environment
 var CaAdminEnv = "HLFD_CA_ADMIN_USER"
