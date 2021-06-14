@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"hlfd/cmd/os_exec_utils"
 	"os"
 	"path"
 
@@ -68,9 +69,18 @@ func terminatePeer() {
 	}
 	cobra.CheckErr(err)
 
-	// Run docker-compose stop
-	execute(fullPath, "docker-compose", "down", "-v", "--rmi", "local")
+	// execute(fullPath, "docker-compose", "down", "-v", "--rmi", "local")
+	cmds := []string{
+		// Run docker-compose stop
+		`cd ` + fullPath,
+		`docker-compose down -v --rmi local`,
 
-	// Remove folder
-	execute(path.Join(hlfdPath, peerDepFolder), "sudo", "rm", "-rf", terminatePeerFlags.Name)
+		// Remove folder
+		`cd ` + path.Join(hlfdPath, peerDepFolder),
+		`sudo rm -rf ` + terminatePeerFlags.Name,
+	}
+	// execute(path.Join(hlfdPath, peerDepFolder), "sudo", "rm", "-rf", terminatePeerFlags.Name)
+
+	_, err = os_exec_utils.ExecMultiCommand(cmds)
+	cobra.CheckErr(err)
 }

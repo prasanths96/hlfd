@@ -214,13 +214,17 @@ func generatePeerYAMLBytes() (yamlB []byte) {
 					`CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/cacerts/ca.crt`,
 					//
 					`CORE_PEER_ID=` + depPeerFlags.PeerName,
-					`CORE_PEER_ADDRESS=` + depPeerFlags.CorePeerAddr,                     // Externally accessible / peer0.org1.medisotv2.com:7051
+					`CORE_PEER_ADDRESS=` + depPeerFlags.CorePeerAddr,                     // Externally accessible (only for inside org) / peer0.org1.medisotv2.com:7051
 					`CORE_PEER_LISTENADDRESS=0.0.0.0:` + strconv.Itoa(depPeerFlags.Port), // 0.0.0.0:7051
 					`CORE_PEER_CHAINCODEADDRESS=` + depPeerFlags.ChaincodeAddr,           // peer0.org1.medisotv2.com:7052
 					`CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:` + getPort(depPeerFlags.ChaincodeAddr),
-					`CORE_PEER_GOSSIP_BOOTSTRAP=` + depPeerFlags.CorePeerAddr,        // peer0.org1.medisotv2.com:7051
-					`CORE_PEER_GOSSIP_EXTERNALENDPOINT=` + depPeerFlags.CorePeerAddr, // peer0.org1.medisotv2.com:7051
+					`CORE_PEER_GOSSIP_BOOTSTRAP=` + depPeerFlags.CorePeerAddr, // peer0.org1.medisotv2.com:7051
+					// If this isn't set, the peer will not be known to other organizations.
+					`CORE_PEER_GOSSIP_EXTERNALENDPOINT=` + depPeerFlags.CorePeerAddr, // peer0.org1.medisotv2.com:7051 / for outside org
 					`CORE_PEER_LOCALMSPID=` + depPeerFlags.MSPId,
+
+					//
+					// CORE_PEER_TLS_CLIENTAUTHREQUIRED // mutual tls
 				},
 				"ports": []string{
 					strconv.FormatInt(int64(depPeerFlags.ExternalPort), 10) + ":" + strconv.FormatInt(int64(depPeerFlags.Port), 10),
