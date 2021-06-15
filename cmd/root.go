@@ -44,11 +44,11 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
-	TraverseChildren: true,
-	Version:          "v0.0.1",
-	// PersistentPreRun: func(cmd *cobra.Command, args []string) {
-	// 	fmt.Println("persistentprerun")
-	// },
+	// TraverseChildren: true,
+	Version: "v0.0.1",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		initHlfdPath()
+	},
 	// PersistentPostRun: func(cmd *cobra.Command, args []string) {
 	// 	fmt.Println("persistentpostrun")
 	// },
@@ -56,6 +56,7 @@ var rootCmd = &cobra.Command{
 	// 	// Initialize hlfd-path
 	// 	initHlfdPath()
 	// },
+	Run: func(cmd *cobra.Command, args []string) {},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -78,8 +79,8 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	// Initialize hlfd-path
-	initHlfdPath()
+	// // Initialize hlfd-path
+	// initHlfdPath()
 }
 
 // initConfig reads in config file and ENV variables if set.

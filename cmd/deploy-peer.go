@@ -20,7 +20,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -45,15 +44,15 @@ var depPeerFlags struct {
 	CaAddr              string
 	CaAdminUser         string
 	CaAdminPass         string
-	CaClientPath        string
-	CaClientVersion     string
-	CaName              string
-	CaTlsCertPath       string
-	StateDB             string
-	CouchAdmin          string
-	CouchPass           string
-	CouchImageTag       string
-	CouchPort           int
+	// CaClientPath        string
+	CaClientVersion string
+	CaName          string
+	CaTlsCertPath   string
+	StateDB         string
+	CouchAdmin      string
+	CouchPass       string
+	CouchImageTag   string
+	CouchPort       int
 
 	ForceTerminate bool
 }
@@ -61,9 +60,6 @@ var depPeerFlags struct {
 // Deployment files path
 var peerDepPath = ""
 var dockerComposeFileNamePeer = ""
-var binPath = ""
-var caClientPath = ""
-var caClientHomePath = ""
 var peerPass = uuid.New().String()
 var peerMspPath = ""
 var peerTlsPath = ""
@@ -78,6 +74,7 @@ var deployPeerCmd = &cobra.Command{
 		return
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
+		preRunDeploy()
 		preRunDepPeer()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -105,8 +102,7 @@ func init() {
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaAddr, "ca-addr", "", ``, "Fabric Certificate Authority address to generate certs for peer (required)")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaAdminUser, "ca-admin-user", "", ``, "Fabric Certificate Authority admin user to generate certs for peer (required)")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaAdminPass, "ca-admin-pass", "", ``, "Fabric Certificate Authority admin pass to generate certs for peer (required)")
-	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaClientPath, "ca-client-path", "", ``, "Path to fabric-ca-client binary")
-	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaClientVersion, "ca-client-version", "", `1.5.0`, "Version of fabric-ca-client binary (same as CA docker image version). Default: 1.5.0")
+	// deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaClientPath, "ca-client-path", "", ``, "Path to fabric-ca-client binary")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
 
 	// DB
@@ -179,18 +175,15 @@ func preRunDepPeer() {
 
 	// Set variables
 	dockerComposeFileNamePeer = "docker-compose.yaml"
-	binPath = path.Join(hlfdPath, binFolder)
-	caClientPath = path.Join(binPath, caClientName)
-	caClientHomePath = path.Join(hlfdPath, caClientHomeFolder, depPeerFlags.CaName)
 	peerMspPath = path.Join(peerDepPath, mspFolder)
 	peerTlsPath = path.Join(peerDepPath, tlsFolder)
+	caClientHomePath = path.Join(hlfdPath, caClientHomeFolder, depPeerFlags.CaName)
 
 	//
 	if depPeerFlags.PeerLogging != "INFO" && depPeerFlags.PeerLogging != "DEBUG" {
 		err := fmt.Errorf("invalid peer-log option: %v", depPeerFlags.PeerLogging)
 		cobra.CheckErr(err)
 	}
-
 }
 
 func deployPeer() {
@@ -316,26 +309,44 @@ func generatePeerEnvBytes() (envB []byte) {
 	return
 }
 
-func getPort(fullAddr string) (port string) {
-	parts := strings.Split(fullAddr, ":")
-	port = parts[1] // Expecting correct address <address>:<port>
-	return
-}
+func generateNodeOUConfigPeer() {
+	yamlObj := Object{
+		`NodeOUs`: Object{
+			`Enable`: true,
+			`ClientOUIdentifier`: Object{
+				`Certificate`:                  `cacerts/ca.pem`,
+				`OrganizationalUnitIdentifier`: `client`,
+			},
+			`PeerOUIdentifier`: Object{
+				`Certificate`:                  `cacerts/ca.pem`,
+				`OrganizationalUnitIdentifier`: `peer`,
+			},
+			`AdminOUIdentifier`: Object{
+				`Certificate`:                  `cacerts/ca.pem`,
+				`OrganizationalUnitIdentifier`: `admin`,
+			},
+			`OrdererOUIdentifier`: Object{
+				`Certificate`:                  `cacerts/ca.pem`,
+				`OrganizationalUnitIdentifier`: `orderer`,
+			},
+		},
+	}
 
-func getUrl(fullAddr string) (url string) {
-	parts := strings.Split(fullAddr, ":")
-	url = parts[0] // Expecting correct address <address>:<port>
-	return
+	// Parse yaml
+	yamlB, err := yaml.Marshal(&yamlObj)
+	cobra.CheckErr(err)
+
+	writeBytesToFile("config.yaml", peerMspPath, yamlB)
 }
 
 func generatePeerCredentials() {
 	fmt.Println("Generating peer credentials...")
 	// 0. Download CA Client binary if not found
-	if depPeerFlags.CaClientPath == "" {
-		dldCaBinariesIfNotExist()
-	}
+	// if depPeerFlags.CaClientPath == "" {
+	dldCaBinariesIfNotExist()
+	// }
 	// 1. Enroll CA Admin
-	enrollCaAdmin()
+	enrollCaAdminPeer()
 	// 2. Register peer
 	registerPeer()
 	// 3. Enroll peer
@@ -346,50 +357,13 @@ func generatePeerCredentials() {
 	// 4. Directory organization
 }
 
-func dldCaBinariesIfNotExist() {
-	// https://github.com/hyperledger/fabric/releases/download/v2.2.3/hyperledger-fabric-linux-amd64-2.2.3.tar.gz
-	// https://github.com/hyperledger/fabric-ca/releases/download/v1.5.0/hyperledger-fabric-ca-linux-amd64-1.5.0.tar.gz
-	// Check and download
-	exists := isFileExists(caClientPath)
-	if exists {
-		return
-	}
-
-	fmt.Println("Downloading fabric-ca-client binary...")
-
-	// Make folders
-	err := os.MkdirAll(binPath, commonFilUmask)
-	throwOtherThanFileExistError(err)
-
-	// Download binaries
-	caBinDldFileName := `hyperledger-fabric-ca-linux-amd64-` + depPeerFlags.CaClientVersion + `.tar.gz`
-	caBinDldurl := `https://github.com/hyperledger/fabric-ca/releases/download/v` + depPeerFlags.CaClientVersion + `/` + caBinDldFileName
-	execute(binPath, "wget", caBinDldurl)
-
-	// Extract
-	execute(binPath, "tar", "xvf", caBinDldFileName)
-
-	// Move files
-	execute(binPath, "mv", "bin/"+caClientName, ".")
-
-	// Delete files
-	delCmd := []string{
-		"cd " + binPath,
-		`rm -rf bin`,
-		`rm -rf ` + caBinDldFileName,
-		`rm -rf ` + caBinDldFileName + `*`,
-	}
-	_, err = os_exec_utils.ExecMultiCommand(delCmd)
-	cobra.CheckErr(err)
-}
-
-func enrollCaAdmin() {
+func enrollCaAdminPeer() {
 	fmt.Println("Enrolling CA Admin...")
 	// Make FABRIC_CA_CLIENT_HOME folder
 	err := os.MkdirAll(caClientHomePath, commonFilUmask)
 	throwOtherThanFileExistError(err)
 
-	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.CaAdminUser, depPeerFlags.CaAdminPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.CaAddr, depPeerFlags.CaAdminUser, depPeerFlags.CaAdminPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl + ` --caname ` + depPeerFlags.CaName
 	// Tls vs no tls command
 	if depPeerFlags.CaTlsCertPath != "" {
@@ -427,7 +401,7 @@ func registerPeer() {
 
 func enrollPeer() {
 	fmt.Println("Enrolling peer...")
-	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.PeerName, peerPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.CaAddr, depPeerFlags.PeerName, peerPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl +
 		` --caname ` + depPeerFlags.CaName +
 		` -M ` + peerMspPath +
@@ -457,42 +431,12 @@ func enrollPeer() {
 	cobra.CheckErr(err)
 
 	// Create ou config
-	generateNodeOUConfig()
-}
-
-func generateNodeOUConfig() {
-	yamlObj := Object{
-		`NodeOUs`: Object{
-			`Enable`: true,
-			`ClientOUIdentifier`: Object{
-				`Certificate`:                  `cacerts/ca.pem`,
-				`OrganizationalUnitIdentifier`: `client`,
-			},
-			`PeerOUIdentifier`: Object{
-				`Certificate`:                  `cacerts/ca.pem`,
-				`OrganizationalUnitIdentifier`: `peer`,
-			},
-			`AdminOUIdentifier`: Object{
-				`Certificate`:                  `cacerts/ca.pem`,
-				`OrganizationalUnitIdentifier`: `admin`,
-			},
-			`OrdererOUIdentifier`: Object{
-				`Certificate`:                  `cacerts/ca.pem`,
-				`OrganizationalUnitIdentifier`: `orderer`,
-			},
-		},
-	}
-
-	// Parse yaml
-	yamlB, err := yaml.Marshal(&yamlObj)
-	cobra.CheckErr(err)
-
-	writeBytesToFile("config.yaml", peerMspPath, yamlB)
+	generateNodeOUConfigPeer()
 }
 
 func enrollPeerTls() {
 	fmt.Println("Enrolling peer tls...")
-	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.PeerName, peerPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.CaAddr, depPeerFlags.PeerName, peerPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl +
 		` --caname ` + depPeerFlags.CaName +
 		` -M ` + peerTlsPath +
@@ -523,17 +467,4 @@ func enrollPeerTls() {
 
 	_, err = os_exec_utils.ExecMultiCommand(cmds)
 	cobra.CheckErr(err)
-}
-
-func getUserEncodedCaUrl(username string, pass string) (fullUrl string) {
-	// parts[0] = https: , parts[1] = localhost:27054
-	parts := strings.SplitN(depPeerFlags.CaAddr, `//`, 2)
-	if len(parts) < 2 {
-		err := fmt.Errorf(`invalid ca address format. Correct format sample: "https://localhost:27054"`)
-		cobra.CheckErr(err)
-	}
-
-	fullUrl = parts[0] + `//` + username + `:` + pass + `@` + parts[1]
-
-	return
 }
