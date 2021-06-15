@@ -49,13 +49,18 @@ var depPeerFlags struct {
 	CaClientVersion     string
 	CaName              string
 	CaTlsCertPath       string
+	StateDB             string
+	CouchAdmin          string
+	CouchPass           string
+	CouchImageTag       string
+	CouchPort           int
 
 	ForceTerminate bool
 }
 
 // Deployment files path
 var peerDepPath = ""
-var dockerComposeFileName = ""
+var dockerComposeFileNamePeer = ""
 var binPath = ""
 var caClientPath = ""
 var caClientHomePath = ""
@@ -104,6 +109,13 @@ func init() {
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaClientVersion, "ca-client-version", "", `1.5.0`, "Version of fabric-ca-client binary (same as CA docker image version). Default: 1.5.0")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
 
+	// DB
+	deployPeerCmd.Flags().StringVarP(&depPeerFlags.StateDB, "state-db", "s", `goleveldb`, "World state database { goleveldb | CouchDB }. Default is goleveldb")
+	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CouchAdmin, "couchdb-admin-user", "", `admin`, "Admin username for couch db")
+	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CouchPass, "couchdb-admin-pass", "", `adminpw`, "Admin pass for couch db")
+	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CouchImageTag, "couchdb-image-tag", "", `3.1`, "Image tag for couch db")
+	deployPeerCmd.Flags().IntVarP(&depPeerFlags.CouchPort, "couchdb-port", "", -1, "CouchDB port")
+
 	// Required
 	deployPeerCmd.MarkFlagRequired("name")
 	deployPeerCmd.MarkFlagRequired("msp-id")
@@ -138,6 +150,9 @@ func preRunDepPeer() {
 	if depPeerFlags.ChaincodeAddr == "" {
 		depPeerFlags.ChaincodeAddr = depPeerFlags.PeerName + `:7052`
 	}
+	if depPeerFlags.CouchPort < 0 {
+		depPeerFlags.CouchPort = depPeerFlags.Port + 100
+	}
 
 	// Force terminate existing, if flag is set
 	if depPeerFlags.ForceTerminate {
@@ -163,7 +178,7 @@ func preRunDepPeer() {
 	throwOtherThanFileExistError(err)
 
 	// Set variables
-	dockerComposeFileName = "docker-compose.yaml"
+	dockerComposeFileNamePeer = "docker-compose.yaml"
 	binPath = path.Join(hlfdPath, binFolder)
 	caClientPath = path.Join(binPath, caClientName)
 	caClientHomePath = path.Join(hlfdPath, caClientHomeFolder, depPeerFlags.CaName)
@@ -182,9 +197,13 @@ func deployPeer() {
 	fmt.Println("Deploying Peer...", depPeerFlags)
 	// 1. Generate certs and put them in right folders
 	generatePeerCredentials()
-	// 2. Generate yaml
+	// 2. Generate yaml & env
 	yamlB := generatePeerYAMLBytes()
-	writeBytesToFile(dockerComposeFileName, peerDepPath, yamlB)
+	writeBytesToFile(dockerComposeFileNamePeer, peerDepPath, yamlB)
+	if depPeerFlags.StateDB == `CouchDB` {
+		envB := generatePeerEnvBytes()
+		writeBytesToFile(".env", peerDepPath, envB)
+	}
 	// 3. Up
 	_, err := os_exec_utils.ExecMultiCommand([]string{
 		`cd ` + peerDepPath,
@@ -205,7 +224,7 @@ func generatePeerYAMLBytes() (yamlB []byte) {
 				"image": "hyperledger/fabric-peer:" + depPeerFlags.ImageTag,
 				"environment": []string{
 					"CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-					`CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=` + depPeerFlags.DockerNetwork,
+					`CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=` + `project_` + depPeerFlags.DockerNetwork,
 					`FABRIC_LOGGING_SPEC=INFO`, // INFO / DEBUG
 					`CORE_PEER_TLS_ENABLED=` + strconv.FormatBool(depPeerFlags.TLSEnabled),
 					`CORE_PEER_PROFILE_ENABLED=false`, // Go profiling tools, must only be used non-prod
@@ -222,7 +241,6 @@ func generatePeerYAMLBytes() (yamlB []byte) {
 					// If this isn't set, the peer will not be known to other organizations.
 					`CORE_PEER_GOSSIP_EXTERNALENDPOINT=` + depPeerFlags.CorePeerAddr, // peer0.org1.medisotv2.com:7051 / for outside org
 					`CORE_PEER_LOCALMSPID=` + depPeerFlags.MSPId,
-
 					//
 					// CORE_PEER_TLS_CLIENTAUTHREQUIRED // mutual tls
 				},
@@ -245,9 +263,55 @@ func generatePeerYAMLBytes() (yamlB []byte) {
 		},
 	}
 
+	// Add couch db container if chosen
+	if depPeerFlags.StateDB == `CouchDB` {
+		couchdbName := depPeerFlags.PeerName + "_couchdb"
+
+		// Add CouchDB container
+		yamlObj["services"].(Object)[couchdbName] = Object{
+			`container_name`: couchdbName,
+			`image`:          `couchdb:` + depPeerFlags.CouchImageTag,
+			`environment`: []string{
+				`COUCHDB_USER=$` + CouchAdminEnv,
+				`COUCHDB_PASSWORD=$` + CouchAdminPassEnv,
+			},
+			`ports`: []string{
+				strconv.FormatInt(int64(depPeerFlags.CouchPort), 10) + ":" + strconv.FormatInt(int64(couchDBConstPort), 10),
+			},
+			`networks`: []string{
+				depPeerFlags.DockerNetwork,
+			},
+		}
+
+		// Modify peer container
+		yamlObj["services"].(Object)[depPeerFlags.PeerName].(Object)[`environment`] = append(
+			yamlObj["services"].(Object)[depPeerFlags.PeerName].(Object)[`environment`].([]string),
+			[]string{
+				`CORE_LEDGER_STATE_STATEDATABASE=` + depPeerFlags.StateDB,
+				`CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=` + couchdbName + `:` + strconv.Itoa(couchDBConstPort),
+				`CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=$` + CouchAdminEnv,
+				`CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=$` + CouchAdminPassEnv,
+			}...,
+		)
+
+		yamlObj["services"].(Object)[depPeerFlags.PeerName].(Object)[`depends_on`] = []string{
+			couchdbName,
+		}
+	}
+
 	// Parse yaml
 	yamlB, err := yaml.Marshal(&yamlObj)
 	cobra.CheckErr(err)
+
+	return
+}
+
+func generatePeerEnvBytes() (envB []byte) {
+	env := CouchAdminEnv + `=` + depPeerFlags.CouchAdmin + `
+` + CouchAdminPassEnv + `=` + depPeerFlags.CouchPass + `
+`
+
+	envB = []byte(env)
 
 	return
 }

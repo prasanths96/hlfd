@@ -188,12 +188,3 @@ func generateCAEnvBytes() (envB []byte) {
 
 	return
 }
-
-func setEnv() {
-	// CA Admin User
-	cmd := `export`
-	arg := CaAdminEnv + `=` + depCaFlags.AdminUser
-	execute(cmd, arg)
-	arg = CaAdminPassEnv + `=` + depCaFlags.AdminPass
-	execute(cmd, arg)
-}
