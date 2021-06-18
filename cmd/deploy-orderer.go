@@ -91,7 +91,7 @@ func init() {
 	deployCmd.AddCommand(deployOrdererCmd)
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.OrdererName, "name", "n", "", "Name of the Orderer to deploy (required)")
 	deployOrdererCmd.Flags().BoolVarP(&depOrdererFlags.TLSEnabled, "tls", "t", false, "Enable TLS")
-	deployOrdererCmd.Flags().IntVarP(&depOrdererFlags.Port, "port", "p", 7051, "Orderer port inside docker container")
+	deployOrdererCmd.Flags().IntVarP(&depOrdererFlags.Port, "port", "p", 7050, "Orderer port inside docker container")
 	deployOrdererCmd.Flags().IntVarP(&depOrdererFlags.ExternalPort, "eport", "e", -1, "Orderer port mapping to container's host")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.DockerNetwork, "docker-network", "d", "hlfd", "Docker network name")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.ImageTag, "image-tag", "i", "2.2", "Hyperledger Orderer docker image tag")
