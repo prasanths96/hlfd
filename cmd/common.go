@@ -1,45 +1,56 @@
 package cmd
 
-import "os"
+import (
+	"os"
+	"runtime"
+)
 
 type Object map[string]interface{}
 
-//
-var hlfdPath string
+var (
+	GOOS = runtime.GOOS
+	ARCH = runtime.GOARCH
+)
 
-//
-var binFolder = "bin"
-var caClientHomeFolder = "ca-client-home"
-var caClientName = "fabric-ca-client"
-var mspFolder = "msp"
-var tlsFolder = "tls"
+var (
+	//
+	hlfdPath string
 
-//
-var commonFilUmask = os.FileMode(0700)
+	//
+	binFolder          = "bin"
+	caClientHomeFolder = "ca-client-home"
+	caClientName       = "fabric-ca-client"
+	mspFolder          = "msp"
+	tlsFolder          = "tls"
 
-//
-var caDepFolder = "ca"
-var peerDepFolder = "peer"
-var ordererDepFolder = "orderer"
+	//
+	commonFilUmask = os.FileMode(0700)
 
-//
-var caHomeFolder = "ca-home"
-var peerHomeFolder = "peer"
-var ordererHomeFolder = "orderer"
+	//
+	caDepFolder      = "cas"
+	peerDepFolder    = "peers"
+	ordererDepFolder = "orderers"
+	orgCommonFolder  = "organizations"
 
-// CA Environment
-var CaAdminEnv = "HLFD_CA_ADMIN_USER"
-var CaAdminPassEnv = "HLFD_CA_ADMIN_PASS"
+	//
+	caHomeFolder      = "ca-home"
+	peerHomeFolder    = "peer"
+	ordererHomeFolder = "orderer"
 
-// Couch Environment
-var CouchAdminEnv = "HLFD_COUCH_ADMIN_USER"
-var CouchAdminPassEnv = "HLFD_COUCH_ADMIN_PASS"
+	// CA Environment
+	CaAdminEnv     = "HLFD_CA_ADMIN_USER"
+	CaAdminPassEnv = "HLFD_CA_ADMIN_PASS"
 
-// Install prereqs
-// var dockerVersion = ""
-var dockerComposeVersion = "1.29.2"
-var goVersion = "1.16.5"
+	// Couch Environment
+	CouchAdminEnv     = "HLFD_COUCH_ADMIN_USER"
+	CouchAdminPassEnv = "HLFD_COUCH_ADMIN_PASS"
 
-// HLF container constant internal configs (cannot change these by env variables)
-// var peerConstPort = 7054
-var couchDBConstPort = 5984
+	// Install prereqs
+	//  dockerVersion = ""
+	dockerComposeVersion = "1.29.2"
+	goVersion            = "1.16.5"
+
+	// HLF container constant internal configs (cannot change these by env variables)
+	//  peerConstPort = 7054
+	couchDBConstPort = 5984
+)

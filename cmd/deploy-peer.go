@@ -45,14 +45,13 @@ var depPeerFlags struct {
 	CaAdminUser         string
 	CaAdminPass         string
 	// CaClientPath        string
-	CaClientVersion string
-	CaName          string
-	CaTlsCertPath   string
-	StateDB         string
-	CouchAdmin      string
-	CouchPass       string
-	CouchImageTag   string
-	CouchPort       int
+	CaName        string
+	CaTlsCertPath string
+	StateDB       string
+	CouchAdmin    string
+	CouchPass     string
+	CouchImageTag string
+	CouchPort     int
 
 	ForceTerminate bool
 }
@@ -74,7 +73,7 @@ var deployPeerCmd = &cobra.Command{
 		return
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		preRunDeploy()
+		preRunRoot()
 		preRunDepPeer()
 	},
 	Run: func(cmd *cobra.Command, args []string) {

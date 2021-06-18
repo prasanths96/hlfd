@@ -48,6 +48,10 @@ var depOrdererFlags struct {
 	CaTlsCertPath   string
 	OrdererAddr     string
 
+	//
+	GenesisPath string
+	JoinCluster bool
+
 	ForceTerminate bool
 }
 
@@ -68,7 +72,7 @@ var deployOrdererCmd = &cobra.Command{
 		return
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		preRunDeploy()
+		preRunRoot()
 		preRunDepOrderer()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -98,6 +102,11 @@ func init() {
 	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaClientPath, "ca-client-path", "", ``, "Path to fabric-ca-client binary")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaClientVersion, "ca-client-version", "", `1.5.0`, "Version of fabric-ca-client binary (same as CA docker image version). Default: 1.5.0")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
+
+	//Passing Genesis block, if not passed, generate new
+	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.GenesisPath, "genesis-path", "", ``, "Path to orderer genesis block to bootstrap with")
+	// If no genesis block, either create new ord-system-channel (cluster) or join existing cluster
+	// deployOrdererCmd.Flags().BoolVarP(&depOrdererFlags.JoinCluster, "join-existing-cluster", "", false, "Path to orderer genesis block to bootstrap with")
 
 	// Required
 	deployOrdererCmd.MarkFlagRequired("name")

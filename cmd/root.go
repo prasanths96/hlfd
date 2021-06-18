@@ -17,14 +17,25 @@ package cmd
 
 import (
 	"fmt"
+	"hlfd/cmd/os_exec_utils"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
+
+var binPath = ""
+var caClientPath = ""
+var caClientHomePath = ""
+
+var rootCommonFlags struct {
+	CaClientVersion string
+	HlfBinVersion   string
+}
 
 var cfgFile string
 var homeDir string
@@ -67,6 +78,9 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	rootCmd.Flags().StringVarP(&rootCommonFlags.CaClientVersion, "ca-client-version", "", `1.5.0`, "Version of fabric-ca-client binary (same as CA docker image version). Default: 1.5.0")
+	rootCmd.Flags().StringVarP(&rootCommonFlags.HlfBinVersion, "hlf-bin-version", "", `2.2.3`, "Version of hlf binaries (same as peer/orderer docker image version). Default: 2.2.3")
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -115,4 +129,117 @@ func initHlfdPath() {
 	throwOtherThanFileExistError(err)
 	hlfdPath = fullPath
 	homeDir = home
+}
+
+func preRunRoot() {
+	binPath = path.Join(hlfdPath, binFolder)
+	caClientPath = path.Join(binPath, caClientName)
+}
+
+func dldCaBinariesIfNotExist() {
+	// https://github.com/hyperledger/fabric/releases/download/v2.2.3/hyperledger-fabric-linux-amd64-2.2.3.tar.gz
+	// https://github.com/hyperledger/fabric-ca/releases/download/v1.5.0/hyperledger-fabric-ca-linux-amd64-1.5.0.tar.gz
+	// Check and download
+	exists := isFileExists(caClientPath)
+	if exists {
+		return
+	}
+
+	fmt.Println("Downloading fabric-ca-client binary...")
+
+	// Make folders
+	fmt.Println("Creating, ", binPath)
+	err := os.MkdirAll(binPath, commonFilUmask)
+	throwOtherThanFileExistError(err)
+
+	// Download binaries					// ${OS}-${ARCH}
+	caBinDldFileName := `hyperledger-fabric-ca-` + GOOS + `-` + ARCH + `-` + rootCommonFlags.CaClientVersion + `.tar.gz`
+	caBinDldurl := `https://github.com/hyperledger/fabric-ca/releases/download/v` + rootCommonFlags.CaClientVersion + `/` + caBinDldFileName
+	execute(binPath, "wget", caBinDldurl)
+
+	// Extract
+	execute(binPath, "tar", "xvf", caBinDldFileName)
+
+	// Move files
+	execute(binPath, "mv", "bin/"+caClientName, ".")
+
+	// Delete files
+	delCmd := []string{
+		"cd " + binPath,
+		`rm -rf bin`,
+		`rm -rf ` + caBinDldFileName,
+		`rm -rf ` + caBinDldFileName + `*`,
+	}
+	_, err = os_exec_utils.ExecMultiCommand(delCmd)
+	cobra.CheckErr(err)
+}
+
+func dldFabricBinariesIfNotExist() {
+	// https://github.com/hyperledger/fabric/releases/download/v2.2.3/hyperledger-fabric-linux-amd64-2.2.3.tar.gz
+	// https://github.com/hyperledger/fabric-ca/releases/download/v1.5.0/hyperledger-fabric-ca-linux-amd64-1.5.0.tar.gz
+	// Check and download
+	// TODO: check for fabrin binaries (whichever we will be using)
+	// exists := isFileExists(caClientPath)
+	// if exists {
+	// 	return
+	// }
+
+	fmt.Println("Downloading hlf binaries...")
+
+	// Make folders
+	err := os.MkdirAll(binPath, commonFilUmask)
+	throwOtherThanFileExistError(err)
+
+	// Download binaries					// ${OS}-${ARCH}
+	binDldFileName := `hyperledger-fabric-` + GOOS + `-` + ARCH + `-` + rootCommonFlags.HlfBinVersion + `.tar.gz`
+	binDldurl := `https://github.com/hyperledger/fabric/releases/download/v` + rootCommonFlags.HlfBinVersion + `/` + binDldFileName
+	execute(binPath, "wget", binDldurl)
+
+	// Extract
+	execute(binPath, "tar", "xvf", binDldFileName)
+
+	// Move files
+	mvCmd := []string{
+		`cd ` + binPath,
+		`mv bin/* .`,
+	}
+	_, err = os_exec_utils.ExecMultiCommand(mvCmd)
+	cobra.CheckErr(err)
+
+	// Delete files
+	delCmd := []string{
+		"cd " + binPath,
+		`rm -rf bin`,
+		`rm -rf config`,
+		`rm -rf ` + binDldFileName,
+		`rm -rf ` + binDldFileName + `*`,
+	}
+	_, err = os_exec_utils.ExecMultiCommand(delCmd)
+	cobra.CheckErr(err)
+}
+
+// Utils
+func getUserEncodedCaUrl(caAddr string, username string, pass string) (fullUrl string) {
+	// parts[0] = https: , parts[1] = localhost:27054
+	parts := strings.SplitN(caAddr, `//`, 2)
+	if len(parts) < 2 {
+		err := fmt.Errorf(`invalid ca address format. Correct format sample: "https://localhost:27054"`)
+		cobra.CheckErr(err)
+	}
+
+	fullUrl = parts[0] + `//` + username + `:` + pass + `@` + parts[1]
+
+	return
+}
+
+func getPort(fullAddr string) (port string) {
+	parts := strings.Split(fullAddr, ":")
+	port = parts[1] // Expecting correct address <address>:<port>
+	return
+}
+
+func getUrl(fullAddr string) (url string) {
+	parts := strings.Split(fullAddr, ":")
+	url = parts[0] // Expecting correct address <address>:<port>
+	return
 }
