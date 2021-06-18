@@ -22,6 +22,8 @@ var (
 	caClientName       = "fabric-ca-client"
 	mspFolder          = "msp"
 	tlsFolder          = "tls"
+	//
+	configTxGenName = "configtxgen"
 
 	//
 	commonFilUmask = os.FileMode(0700)
@@ -36,6 +38,10 @@ var (
 	caHomeFolder      = "ca-home"
 	peerHomeFolder    = "peer"
 	ordererHomeFolder = "orderer"
+	//
+	genesisFileName = "genesis.block"
+	//
+	orgInfoFileName = "info.json"
 
 	// CA Environment
 	CaAdminEnv     = "HLFD_CA_ADMIN_USER"

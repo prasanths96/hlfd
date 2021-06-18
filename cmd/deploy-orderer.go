@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -37,30 +38,35 @@ var depOrdererFlags struct {
 	OrdererHomeVolumeMount string
 	DockerNetwork          string
 	ImageTag               string
-	MSPId                  string
-	OrdererLogging         string
-	CaAddr                 string
-	CaAdminUser            string
-	CaAdminPass            string
+	// MSPId                  string
+	OrdererLogging string
+	// CaAddr         string
+	CaAdminUser string
+	CaAdminPass string
 	// CaClientPath        string
 	CaClientVersion string
 	CaName          string
-	CaTlsCertPath   string
-	OrdererAddr     string
+	// CaTlsCertPath   string
+	OrdererAddr string
 
 	//
-	GenesisPath string
-	JoinCluster bool
+	// GenesisPath string
+	OrgName string
 
 	ForceTerminate bool
 }
 
 // Deployment files path
 var ordererDepPath = ""
+var ordererGenesisPath = ""
 var dockerComposeFileNameOrderer = ""
 var ordererPass = uuid.New().String()
 var ordererMspPath = ""
 var ordererTlsPath = ""
+var ordererDepOrgInfo OrgInfo
+
+//
+var selectedCA CAInfo
 
 //
 var deployOrdererCmd = &cobra.Command{
@@ -91,48 +97,49 @@ func init() {
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.ImageTag, "image-tag", "i", "2.2", "Hyperledger Orderer docker image tag")
 	deployOrdererCmd.Flags().BoolVarP(&depOrdererFlags.ForceTerminate, "force", "f", false, "Force deploy or terminate orderer if orderer with given name already exists")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.OrdererLogging, "orderer-log", "l", "INFO", "Orderer logging spec {INFO | DEBUG}")
-	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.MSPId, "msp-id", "m", ``, "MSP ID of orderer / ORDERER_GENERAL_LOCALMSPID (required)")
+	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.MSPId, "msp-id", "m", ``, "MSP ID of orderer / ORDERER_GENERAL_LOCALMSPID (required)")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.OrdererAddr, "orderer-addr", "a", ``, "Externally accessible address of orderer")
 
 	// TODO: If local ca, ca-name should be sufficient
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaName, "ca-name", "", ``, "Fabric Certificate Authority name to generate certs for orderer (required)")
-	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaAddr, "ca-addr", "", ``, "Fabric Certificate Authority address to generate certs for orderer (required)")
+	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaAddr, "ca-addr", "", ``, "Fabric Certificate Authority address to generate certs for orderer (required)")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaAdminUser, "ca-admin-user", "", ``, "Fabric Certificate Authority admin user to generate certs for orderer (required)")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaAdminPass, "ca-admin-pass", "", ``, "Fabric Certificate Authority admin pass to generate certs for orderer (required)")
 	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaClientPath, "ca-client-path", "", ``, "Path to fabric-ca-client binary")
-	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaClientVersion, "ca-client-version", "", `1.5.0`, "Version of fabric-ca-client binary (same as CA docker image version). Default: 1.5.0")
-	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
+	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
 
-	//Passing Genesis block, if not passed, generate new
-	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.GenesisPath, "genesis-path", "", ``, "Path to orderer genesis block to bootstrap with")
-	// If no genesis block, either create new ord-system-channel (cluster) or join existing cluster
-	// deployOrdererCmd.Flags().BoolVarP(&depOrdererFlags.JoinCluster, "join-existing-cluster", "", false, "Path to orderer genesis block to bootstrap with")
+	// Passing Genesis block, if not passed, generate new
+	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.GenesisPath, "genesis-path", "", ``, "Path to orderer genesis block to bootstrap with")
+	//
+
+	//
+	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.OrgName, "org-name", "", ``, "Name of the HLFD created organization to which this orderer will be a part of")
 
 	// Required
 	deployOrdererCmd.MarkFlagRequired("name")
-	deployOrdererCmd.MarkFlagRequired("msp-id")
+	// deployOrdererCmd.MarkFlagRequired("msp-id")
 	deployOrdererCmd.MarkFlagRequired("ca-name")
-	deployOrdererCmd.MarkFlagRequired("ca-addr")
+	// deployOrdererCmd.MarkFlagRequired("ca-addr")
 	deployOrdererCmd.MarkFlagRequired("ca-admin-user")
 	deployOrdererCmd.MarkFlagRequired("ca-admin-pass")
 	deployOrdererCmd.MarkFlagRequired("orderer-addr")
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// deployCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// deployCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	deployOrdererCmd.MarkFlagRequired("org-name")
 }
 
 func preRunDepOrderer() {
-	// Fill in optional flags
-	// if depOrdererFlags.ContainerName == "" {
-	// 	depOrdererFlags.ContainerName = depOrdererFlags.CaName
-	// }
+	// Check of Org exists, else throw err
+	if depOrdererFlags.OrgName == "" {
+		err := fmt.Errorf("org-name cannot be empty")
+		cobra.CheckErr(err)
+	}
+	// Org path check
+	orgPath = path.Join(hlfdPath, orgCommonFolder, depOrdererFlags.OrgName)
+	throwIfFileNotExist(orgPath)
+	// Load org info
+	orgInfoPath := path.Join(orgPath, orgInfoFileName)
+	err := json.Unmarshal(readFileBytes(orgInfoPath), &ordererDepOrgInfo)
+	cobra.CheckErr(err)
+
 	if depOrdererFlags.ExternalPort < 0 { // Check allowed ports as per standards
 		depOrdererFlags.ExternalPort = depOrdererFlags.Port
 	}
@@ -148,7 +155,7 @@ func preRunDepOrderer() {
 	ordererDepPath = path.Join(hlfdPath, ordererDepFolder, depOrdererFlags.OrdererName)
 	// Check if already exists
 	throwIfFileExists(ordererDepPath)
-	err := os.MkdirAll(ordererDepPath, commonFilUmask)
+	err = os.MkdirAll(ordererDepPath, commonFilUmask)
 	throwOtherThanFileExistError(err)
 
 	if depOrdererFlags.OrdererHomeVolumeMount == "" {
@@ -165,11 +172,36 @@ func preRunDepOrderer() {
 	ordererMspPath = path.Join(ordererDepPath, mspFolder)
 	ordererTlsPath = path.Join(ordererDepPath, tlsFolder)
 	caClientHomePath = path.Join(hlfdPath, caClientHomeFolder, depOrdererFlags.CaName)
+	ordererGenesisPath = path.Join(ordererDepPath, genesisFileName)
 
 	//
 	if depOrdererFlags.OrdererLogging != "INFO" && depOrdererFlags.OrdererLogging != "DEBUG" {
 		err := fmt.Errorf("invalid orderer-log option: %v", depOrdererFlags.OrdererLogging)
 		cobra.CheckErr(err)
+	}
+
+	// Select CA
+	selectCa()
+}
+
+func selectCa() {
+	switch depOrdererFlags.CaName {
+	case "":
+		// Choose first ca from list
+		selectedCA = ordererDepOrgInfo.CaInfo[0]
+	default:
+		found := false
+		for _, v := range ordererDepOrgInfo.CaInfo {
+			if v.CaName == depOrdererFlags.CaName {
+				selectedCA = v
+				found = true
+				break
+			}
+		}
+		if !found {
+			err := fmt.Errorf("ca-name: %v not found in the org: %v", depOrdererFlags.CaName, depOrdererFlags.OrgName)
+			cobra.CheckErr(err)
+		}
 	}
 }
 
@@ -177,10 +209,12 @@ func deployOrderer() {
 	fmt.Println("Deploying Orderer...", depOrdererFlags)
 	// 1. Generate certs and put them in right folders
 	generateOrdererCredentials()
-	// 2. Generate yaml & env
+	// 2. Generate genesis block
+	generateGenesis()
+	// 3. Generate yaml & env
 	yamlB := generateOrdererYAMLBytes()
 	writeBytesToFile(dockerComposeFileNameOrderer, ordererDepPath, yamlB)
-	// 3. Up
+	// 4. Up
 	_, err := os_exec_utils.ExecMultiCommand([]string{
 		`cd ` + ordererDepPath,
 		`docker-compose up -d`,
@@ -202,10 +236,10 @@ func generateOrdererYAMLBytes() (yamlB []byte) {
 					`FABRIC_LOGGING_SPEC=INFO`, // INFO / DEBUG
 					`ORDERER_GENERAL_LISTENADDRESS=0.0.0.0`,
 					`ORDERER_GENERAL_LISTENPORT=` + strconv.Itoa(depOrdererFlags.Port),
-					// `ORDERER_GENERAL_GENESISMETHOD=file`,
-					// ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
-					`ORDERER_GENERAL_GENESISMETHOD=none`,
-					`ORDERER_GENERAL_LOCALMSPID=` + depOrdererFlags.MSPId,
+					`ORDERER_GENERAL_GENESISMETHOD=file`,
+					`ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block`,
+					// `ORDERER_GENERAL_GENESISMETHOD=none`,
+					`ORDERER_GENERAL_LOCALMSPID=` + ordererDepOrgInfo.MspId,
 					`ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp`,
 					`ORDERER_GENERAL_TLS_ENABLED=` + strconv.FormatBool(depOrdererFlags.TLSEnabled),
 					`ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/keystore/server.key`,
@@ -224,7 +258,7 @@ func generateOrdererYAMLBytes() (yamlB []byte) {
 				},
 				"command": `orderer`,
 				"volumes": []string{
-					// `../system-genesis-block/genesis.block:/var/hyperledger/orderer/orderer.genesis.block`,
+					ordererGenesisPath + `:/var/hyperledger/orderer/orderer.genesis.block`,
 					ordererMspPath + `:/var/hyperledger/orderer/msp`,
 					ordererTlsPath + `:/var/hyperledger/orderer/tls`,
 					depOrdererFlags.OrdererHomeVolumeMount + `:/var/hyperledger/production/orderer`,
@@ -299,11 +333,11 @@ func enrollCaAdminOrderer() {
 	err := os.MkdirAll(caClientHomePath, commonFilUmask)
 	throwOtherThanFileExistError(err)
 
-	userEncodedCaUrl := getUserEncodedCaUrl(depOrdererFlags.CaAddr, depOrdererFlags.CaAdminUser, depOrdererFlags.CaAdminPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(selectedCA.CaAddr, depOrdererFlags.CaAdminUser, depOrdererFlags.CaAdminPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl + ` --caname ` + depOrdererFlags.CaName
 	// Tls vs no tls command
-	if depOrdererFlags.CaTlsCertPath != "" {
-		enrollCmd = enrollCmd + ` --tls.certfiles ` + depOrdererFlags.CaTlsCertPath
+	if selectedCA.CaTlsCertPath != "" {
+		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
 	}
 
 	commands := []string{
@@ -321,8 +355,8 @@ func registerOrderer() {
 	fmt.Println("Registering Orderer with CA...")
 	enrollCmd := `./fabric-ca-client register --caname ` + depOrdererFlags.CaName + ` --id.name ` + depOrdererFlags.OrdererName + ` --id.secret ` + ordererPass + ` --id.type orderer`
 	// Tls vs no tls command
-	if depOrdererFlags.CaTlsCertPath != "" {
-		enrollCmd = enrollCmd + ` --tls.certfiles ` + depOrdererFlags.CaTlsCertPath
+	if selectedCA.CaTlsCertPath != "" {
+		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
 	}
 	commands := []string{
 		`export FABRIC_CA_CLIENT_HOME=` + caClientHomePath,
@@ -337,14 +371,14 @@ func registerOrderer() {
 
 func enrollOrderer() {
 	fmt.Println("Enrolling Orderer...")
-	userEncodedCaUrl := getUserEncodedCaUrl(depOrdererFlags.CaAddr, depOrdererFlags.OrdererName, ordererPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(selectedCA.CaAddr, depOrdererFlags.OrdererName, ordererPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl +
 		` --caname ` + depOrdererFlags.CaName +
 		` -M ` + ordererMspPath +
 		` --csr.hosts ` + getUrl(depOrdererFlags.OrdererAddr)
 	// Tls vs no tls command
-	if depOrdererFlags.CaTlsCertPath != "" {
-		enrollCmd = enrollCmd + ` --tls.certfiles ` + depOrdererFlags.CaTlsCertPath
+	if selectedCA.CaTlsCertPath != "" {
+		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
 	}
 
 	commands := []string{
@@ -372,15 +406,15 @@ func enrollOrderer() {
 
 func enrollOrdererTls() {
 	fmt.Println("Enrolling orderer tls...")
-	userEncodedCaUrl := getUserEncodedCaUrl(depOrdererFlags.CaAddr, depOrdererFlags.OrdererName, ordererPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(selectedCA.CaAddr, depOrdererFlags.OrdererName, ordererPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl +
 		` --caname ` + depOrdererFlags.CaName +
 		` -M ` + ordererTlsPath +
 		` --csr.hosts ` + getUrl(depOrdererFlags.OrdererAddr) +
 		` --csr.hosts ` + `localhost`
 	// Tls vs no tls command
-	if depOrdererFlags.CaTlsCertPath != "" {
-		enrollCmd = enrollCmd + ` --tls.certfiles ` + depOrdererFlags.CaTlsCertPath
+	if selectedCA.CaTlsCertPath != "" {
+		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
 	}
 
 	commands := []string{
@@ -403,4 +437,116 @@ func enrollOrdererTls() {
 
 	_, err = os_exec_utils.ExecMultiCommand(cmds)
 	cobra.CheckErr(err)
+}
+
+func generateGenesis() {
+	// 1. Generate configtx.yml
+	generateOrdConfYAML()
+
+	// dld hlf binaires
+	dldFabricBinariesIfNotExist()
+
+	// 2. Generate genesis block
+	// configtxgen -profile TwoOrgsOrdererGenesis -channelID system-channel -outputBlock ./system-genesis-block/genesis.block
+	cmds := []string{
+		`export FABRIC_CFG_PATH=` + ordererDepPath,
+		`cd ` + binPath,
+		`./configtxgen -profile OrdererGenesis -channelID system-channel -outputBlock ` + ordererGenesisPath,
+	}
+	_, err := os_exec_utils.ExecMultiCommand(cmds)
+	cobra.CheckErr(err)
+}
+
+func generateOrdConfYAML() {
+
+	readerPolicy := Object{
+		"Type": "ImplicitMeta",
+		"Rule": "ANY Readers",
+	}
+	writerPolicy := Object{
+		"Type": "ImplicitMeta",
+		"Rule": "ANY Writers",
+	}
+	adminPolicy := Object{
+		"Type": "ImplicitMeta",
+		"Rule": "MAJORITY Admins",
+	}
+	blockValidationPolicy := Object{
+		"Type": "ImplicitMeta",
+		"Rule": "ANY Writers",
+	}
+
+	yamlObj := Object{
+		"Profiles": Object{
+			"OrdererGenesis": Object{
+				// Channel defaults
+				"Policies": Object{
+					"Readers": readerPolicy,
+					"Writers": writerPolicy,
+					"Admins":  adminPolicy,
+				},
+				"Capabilities": Object{
+					"V2_0": true,
+				},
+				//
+				"Orderer": Object{
+					// Orderer defaults
+					"OrdererType": "etcdraft",
+					"Addresses": []string{
+						depOrdererFlags.OrdererAddr,
+					},
+					"EtcdRaft": Object{
+						"Consenters": []Object{
+							{
+								"Host":          getUrl(depOrdererFlags.OrdererAddr),
+								"Port":          getPort(depOrdererFlags.OrdererAddr),
+								"ClientTLSCert": path.Join(ordererTlsPath, `cacerts`, `ca.crt`), // for mutual tls, this should be different
+								"ServerTLSCert": path.Join(ordererTlsPath, `cacerts`, `ca.crt`),
+							},
+						},
+					},
+					"BatchTimeout": "1s",
+					"BatchSize": Object{
+						"MaxMessageCount":   10,
+						"AbsoluteMaxBytes":  "99 MB",
+						"PreferredMaxBytes": "512 KB",
+					},
+					"Policies": Object{
+						"Readers":         readerPolicy,
+						"Writers":         writerPolicy,
+						"Admins":          adminPolicy,
+						"BlockValidation": blockValidationPolicy,
+					},
+					//
+					"Organizations": []Object{
+						// Orderer org
+						{
+							"Name":     ordererDepOrgInfo.Name,
+							"ID":       ordererDepOrgInfo.MspId,
+							"MSPDir":   ordererDepOrgInfo.MspDir,
+							"Policies": ordererDepOrgInfo.Policies,
+							"OrdererEndpoints": []string{
+								depOrdererFlags.OrdererAddr,
+							},
+						},
+					},
+					//
+					"Capabilities": Object{
+						"V2_0": true,
+					},
+				},
+				"Consortiums": Object{
+					"SampleConsortium": Object{
+						"Organizations": []Object{},
+					},
+				},
+			},
+		},
+	}
+
+	// Parse yaml
+	yamlB, err := yaml.Marshal(&yamlObj)
+	cobra.CheckErr(err)
+
+	writeBytesToFile("configtx.yaml", ordererDepPath, yamlB)
 }

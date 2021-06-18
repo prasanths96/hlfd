@@ -24,6 +24,11 @@ func throwIfFileExists(path string) {
 	}
 }
 
+func throwIfFileNotExist(path string) {
+	_, err := os.Stat(path)
+	cobra.CheckErr(err)
+}
+
 func isFileExists(path string) (exists bool) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -37,6 +42,12 @@ func writeBytesToFile(fileName string, pathS string, dataB []byte) {
 	// f, err := os.Create(path.Join(pathS, fileName))
 	err := ioutil.WriteFile(path.Join(pathS, fileName), dataB, commonFilUmask)
 	cobra.CheckErr(err)
+}
+
+func readFileBytes(fullPath string) (dataB []byte) {
+	dataB, err := ioutil.ReadFile(fullPath)
+	cobra.CheckErr(err)
+	return
 }
 
 func appendStringToFile(fileName string, pathS string, data string) {

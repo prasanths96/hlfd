@@ -179,10 +179,10 @@ func dldFabricBinariesIfNotExist() {
 	// https://github.com/hyperledger/fabric-ca/releases/download/v1.5.0/hyperledger-fabric-ca-linux-amd64-1.5.0.tar.gz
 	// Check and download
 	// TODO: check for fabrin binaries (whichever we will be using)
-	// exists := isFileExists(caClientPath)
-	// if exists {
-	// 	return
-	// }
+	exists := isFileExists(path.Join(binPath, configTxGenName))
+	if exists {
+		return
+	}
 
 	fmt.Println("Downloading hlf binaries...")
 

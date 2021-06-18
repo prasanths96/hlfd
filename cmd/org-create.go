@@ -16,10 +16,12 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"hlfd/cmd/os_exec_utils"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -35,6 +37,10 @@ var orgCreateFlags struct {
 	// CaClientPath        string
 	CaName        string
 	CaTlsCertPath string
+	//Policies
+	ReaderPolicyS string
+	WriterPolicyS string
+	AdminPolicyS  string
 }
 
 var (
@@ -43,11 +49,11 @@ var (
 )
 
 type OrgInfo struct {
-	Name   string `json:"name"`
-	MspId  string `json:"mspId"`
-	CaInfo CAInfo `json:"caInfo"`
-	MspDir string `json:"mspDir"`
-	// Policies interface{}
+	Name     string   `json:"name"`
+	MspId    string   `json:"mspId"`
+	CaInfo   []CAInfo `json:"caInfo"`
+	MspDir   string   `json:"mspDir"`
+	Policies Object   `json:"policies"` // map[Readers]Policy , map[Writers]Policy, map[Admins]Policy ...
 }
 
 type CAInfo struct {
@@ -57,13 +63,17 @@ type CAInfo struct {
 	CaTlsCertPath    string `json:"caTlsCertPath"`
 }
 
+type Policy struct {
+	Type string
+	Rule string
+}
+
 // orgCreateCmd represents the ca command
 var orgCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create HLF organization",
 	Long:  `Create HLF organization`,
 	Args: func(cmd *cobra.Command, args []string) (err error) {
-		// container name greater than 2 chars..
 		return
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -91,6 +101,11 @@ func init() {
 	orgCreateCmd.Flags().StringVarP(&orgCreateFlags.CaAdminPass, "ca-admin-pass", "", ``, "Fabric Certificate Authority admin pass to generate certs for org (required)")
 	// orgCreateCmd.Flags().StringVarP(&orgCreateFlags.CaClientPath, "ca-client-path", "", ``, "Path to fabric-ca-client binary")
 	orgCreateCmd.Flags().StringVarP(&orgCreateFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
+
+	// Policies
+	orgCreateCmd.Flags().StringVarP(&orgCreateFlags.ReaderPolicyS, "reader-policy", "", ``, `Org Reader Policy. Format: "<type> <policy>" Eg: "Signature OR('OrdererMSP.member')"`)
+	orgCreateCmd.Flags().StringVarP(&orgCreateFlags.WriterPolicyS, "writer-policy", "", ``, `Org Writer Policy. Format: "<type> <policy>" Eg: "Signature OR('OrdererMSP.member')"`)
+	orgCreateCmd.Flags().StringVarP(&orgCreateFlags.AdminPolicyS, "admin-policy", "", ``, `Org Admin Policy. Format: "<type> <policy>" Eg: "Signature OR('OrdererMSP.admin')"`)
 
 	// Required
 	orgCreateCmd.MarkFlagRequired("name")
@@ -124,7 +139,7 @@ func orgCreate() {
 	generateOrgMSP()
 
 	// 3. Store org info in json
-
+	storeOrgInfo()
 }
 
 func generateOrgMSP() {
@@ -170,7 +185,6 @@ func generateOrgMSP() {
 
 	// Node ou
 	generateNodeOUConfigOrg()
-
 }
 
 func enrollCaAdminOrg() {
@@ -225,4 +239,71 @@ func generateNodeOUConfigOrg() {
 	cobra.CheckErr(err)
 
 	writeBytesToFile("config.yaml", orgMSPPath, yamlB)
+}
+
+func storeOrgInfo() {
+	// Parse policies
+	readerPolicy := Policy{
+		Type: "Signature",
+		Rule: `OR('` + orgCreateFlags.MSP + `.member')`,
+	}
+	writerPolicy := Policy{
+		Type: "Signature",
+		Rule: `OR('` + orgCreateFlags.MSP + `.member')`,
+	}
+	adminPolicy := Policy{
+		Type: "Signature",
+		Rule: `OR('` + orgCreateFlags.MSP + `.admin')`,
+	}
+
+	if orgCreateFlags.ReaderPolicyS != "" {
+		typee, rule := parsePolicyInput(orgCreateFlags.ReaderPolicyS)
+		readerPolicy.Type = typee
+		readerPolicy.Rule = rule
+	}
+	if orgCreateFlags.WriterPolicyS != "" {
+		typee, rule := parsePolicyInput(orgCreateFlags.WriterPolicyS)
+		writerPolicy.Type = typee
+		writerPolicy.Rule = rule
+	}
+	if orgCreateFlags.AdminPolicyS != "" {
+		typee, rule := parsePolicyInput(orgCreateFlags.AdminPolicyS)
+		adminPolicy.Type = typee
+		adminPolicy.Rule = rule
+	}
+
+	orgInfo := OrgInfo{
+		Name:  orgCreateFlags.Name,
+		MspId: orgCreateFlags.MSP,
+		CaInfo: []CAInfo{
+			{
+				CaName:           orgCreateFlags.CaName,
+				CaAddr:           orgCreateFlags.CaAddr,
+				CaClientHomePath: caClientHomePath,
+				CaTlsCertPath:    orgCreateFlags.CaTlsCertPath,
+			},
+		},
+		MspDir: path.Join(orgPath, "msp"),
+		Policies: map[string]interface{}{
+			"Readers": readerPolicy,
+			"Writers": writerPolicy,
+			"Admins":  adminPolicy,
+		},
+	}
+
+	m, err := json.MarshalIndent(orgInfo, "", "    ")
+	cobra.CheckErr(err)
+
+	writeBytesToFile(orgInfoFileName, orgPath, m)
+}
+
+func parsePolicyInput(policyS string) (typee, rule string) {
+	parts := strings.Split(policyS, " ")
+	if len(parts) < 2 {
+		err := fmt.Errorf("bad policy syntax")
+		cobra.CheckErr(err)
+	}
+	typee = parts[0]
+	rule = strings.Join(parts[1:], " ")
+	return
 }
