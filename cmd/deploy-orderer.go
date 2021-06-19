@@ -140,9 +140,7 @@ func preRunDepOrderer() {
 
 	// Force terminate existing, if flag is set
 	if depOrdererFlags.ForceTerminate {
-		// terminateOrdererFlags.Name = depOrdererFlags.OrdererName
-		// terminateOrdererFlags.Quiet = true
-		// terminateOrderer()
+		quietTerminateOrderer(depOrdererFlags.OrdererName)
 	}
 
 	// Create folders for storing deployment files
@@ -522,4 +520,10 @@ func generateOrdConfYAML() {
 	cobra.CheckErr(err)
 
 	writeBytesToFile("configtx.yaml", ordererDepPath, yamlB)
+}
+
+func quietTerminateOrderer(peerName string) {
+	terminateOrdererFlags.Name = peerName
+	terminateOrdererFlags.Quiet = true
+	terminateOrderer()
 }

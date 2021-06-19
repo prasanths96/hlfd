@@ -100,9 +100,7 @@ func preRunDepCa() {
 
 	// Force terminate existing ca, if flag is set
 	if depCaFlags.ForceTerminate {
-		terminateCaFlags.Name = depCaFlags.CaName
-		terminateCaFlags.Quiet = true
-		terminateCA()
+		quietTerminateCa(depCaFlags.CaName)
 	}
 
 	// Create folders for storing CA deployment files
@@ -187,4 +185,10 @@ func generateCAEnvBytes() (envB []byte) {
 	envB = []byte(env)
 
 	return
+}
+
+func quietTerminateCa(peerName string) {
+	terminateCaFlags.Name = peerName
+	terminateCaFlags.Quiet = true
+	terminateCA()
 }

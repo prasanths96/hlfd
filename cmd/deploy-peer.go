@@ -162,9 +162,7 @@ func preRunDepPeer() {
 
 	// Force terminate existing, if flag is set
 	if depPeerFlags.ForceTerminate {
-		terminatePeerFlags.Name = depPeerFlags.PeerName
-		terminatePeerFlags.Quiet = true
-		terminatePeer()
+		quietTerminatePeer(depPeerFlags.PeerName)
 	}
 
 	// Create folders for storing deployment files
@@ -217,6 +215,8 @@ func deployPeer() {
 		`docker-compose up -d`,
 	})
 	cobra.CheckErr(err)
+
+	// defer depPeerPanicRecovery()
 }
 
 func generatePeerYAMLBytes() (yamlB []byte) {
@@ -481,4 +481,17 @@ func enrollPeerTls() {
 
 	_, err = os_exec_utils.ExecMultiCommand(cmds)
 	cobra.CheckErr(err)
+}
+
+// func depPeerPanicRecovery() {
+// 	if err := recover(); err != nil {
+// 		log.Println("Panic: ", err)
+// 		quietTerminatePeer(depPeerFlags.PeerName)
+// 	}
+// }
+
+func quietTerminatePeer(peerName string) {
+	terminatePeerFlags.Name = peerName
+	terminatePeerFlags.Quiet = true
+	terminatePeer()
 }
