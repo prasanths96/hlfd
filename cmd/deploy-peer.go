@@ -37,21 +37,22 @@ var depPeerFlags struct {
 	PeerHomeVolumeMount string
 	DockerNetwork       string
 	ImageTag            string
-	MSPId               string
-	PeerLogging         string
-	CorePeerAddr        string
-	ChaincodeAddr       string
-	CaAddr              string
-	CaAdminUser         string
-	CaAdminPass         string
+	// MSPId               string
+	PeerLogging   string
+	CorePeerAddr  string
+	ChaincodeAddr string
+	// CaAddr              string
+	CaAdminUser string
+	CaAdminPass string
 	// CaClientPath        string
-	CaName        string
-	CaTlsCertPath string
+	CaName string
+	// CaTlsCertPath string
 	StateDB       string
 	CouchAdmin    string
 	CouchPass     string
 	CouchImageTag string
 	CouchPort     int
+	OrgName       string
 
 	ForceTerminate bool
 }
@@ -62,6 +63,7 @@ var dockerComposeFileNamePeer = ""
 var peerPass = uuid.New().String()
 var peerMspPath = ""
 var peerTlsPath = ""
+var peerDepOrgInfo OrgInfo
 
 //
 var deployPeerCmd = &cobra.Command{
@@ -94,15 +96,15 @@ func init() {
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.PeerLogging, "peer-log", "l", "INFO", "Peer logging spec {INFO | DEBUG}")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CorePeerAddr, "core-peer-addr", "a", ``, "Externally accessible address of peer / CORE_PEER_ADDRESS")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.ChaincodeAddr, "chaincode-addr", "c", ``, "Externally accessible address of chaincode / CORE_PEER_CHAINCODEADDRESS")
-	deployPeerCmd.Flags().StringVarP(&depPeerFlags.MSPId, "msp-id", "m", ``, "MSP ID of peer / CORE_PEER_MSPID (required)")
+	// deployPeerCmd.Flags().StringVarP(&depPeerFlags.MSPId, "msp-id", "m", ``, "MSP ID of peer / CORE_PEER_MSPID (required)")
 
 	// TODO: If local ca, ca-name should be sufficient
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaName, "ca-name", "", ``, "Fabric Certificate Authority name to generate certs for peer (required)")
-	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaAddr, "ca-addr", "", ``, "Fabric Certificate Authority address to generate certs for peer (required)")
+	// deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaAddr, "ca-addr", "", ``, "Fabric Certificate Authority address to generate certs for peer (required)")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaAdminUser, "ca-admin-user", "", ``, "Fabric Certificate Authority admin user to generate certs for peer (required)")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaAdminPass, "ca-admin-pass", "", ``, "Fabric Certificate Authority admin pass to generate certs for peer (required)")
 	// deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaClientPath, "ca-client-path", "", ``, "Path to fabric-ca-client binary")
-	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
+	// deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
 
 	// DB
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.StateDB, "state-db", "s", `goleveldb`, "World state database { goleveldb | CouchDB }. Default is goleveldb")
@@ -111,13 +113,15 @@ func init() {
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CouchImageTag, "couchdb-image-tag", "", `3.1`, "Image tag for couch db")
 	deployPeerCmd.Flags().IntVarP(&depPeerFlags.CouchPort, "couchdb-port", "", -1, "CouchDB port")
 
+	//
+	deployPeerCmd.Flags().StringVarP(&depPeerFlags.OrgName, "org-name", "", ``, "Name of the HLFD created organization to which this peer will be a part of")
+
 	// Required
 	deployPeerCmd.MarkFlagRequired("name")
-	deployPeerCmd.MarkFlagRequired("msp-id")
 	deployPeerCmd.MarkFlagRequired("ca-name")
-	deployPeerCmd.MarkFlagRequired("ca-addr")
 	deployPeerCmd.MarkFlagRequired("ca-admin-user")
 	deployPeerCmd.MarkFlagRequired("ca-admin-pass")
+	deployPeerCmd.MarkFlagRequired("org-name")
 
 	// Here you will define your flags and configuration settings.
 
@@ -131,6 +135,13 @@ func init() {
 }
 
 func preRunDepPeer() {
+	// Check of Org exists, else throw err
+	if depPeerFlags.OrgName == "" {
+		err := fmt.Errorf("org-name cannot be empty")
+		cobra.CheckErr(err)
+	}
+	// Load orginfo
+	peerDepOrgInfo = loadOrgInfo(depPeerFlags.OrgName)
 	// Fill in optional flags
 	// if depPeerFlags.ContainerName == "" {
 	// 	depPeerFlags.ContainerName = depPeerFlags.CaName
@@ -183,6 +194,10 @@ func preRunDepPeer() {
 		err := fmt.Errorf("invalid peer-log option: %v", depPeerFlags.PeerLogging)
 		cobra.CheckErr(err)
 	}
+
+	// Select CA
+	selectedCA = selectCaFromList(depOrdererFlags.CaName, peerDepOrgInfo.CaInfo)
+
 }
 
 func deployPeer() {
@@ -232,7 +247,7 @@ func generatePeerYAMLBytes() (yamlB []byte) {
 					`CORE_PEER_GOSSIP_BOOTSTRAP=` + depPeerFlags.CorePeerAddr, // peer0.org1.medisotv2.com:7051
 					// If this isn't set, the peer will not be known to other organizations.
 					`CORE_PEER_GOSSIP_EXTERNALENDPOINT=` + depPeerFlags.CorePeerAddr, // peer0.org1.medisotv2.com:7051 / for outside org
-					`CORE_PEER_LOCALMSPID=` + depPeerFlags.MSPId,
+					`CORE_PEER_LOCALMSPID=` + peerDepOrgInfo.MspId,
 					//
 					// CORE_PEER_TLS_CLIENTAUTHREQUIRED // mutual tls
 				},
@@ -362,11 +377,11 @@ func enrollCaAdminPeer() {
 	err := os.MkdirAll(caClientHomePath, commonFilUmask)
 	throwOtherThanFileExistError(err)
 
-	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.CaAddr, depPeerFlags.CaAdminUser, depPeerFlags.CaAdminPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(selectedCA.CaAddr, depPeerFlags.CaAdminUser, depPeerFlags.CaAdminPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl + ` --caname ` + depPeerFlags.CaName
 	// Tls vs no tls command
-	if depPeerFlags.CaTlsCertPath != "" {
-		enrollCmd = enrollCmd + ` --tls.certfiles ` + depPeerFlags.CaTlsCertPath
+	if selectedCA.CaTlsCertPath != "" {
+		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
 	}
 
 	commands := []string{
@@ -384,8 +399,8 @@ func registerPeer() {
 	fmt.Println("Registering Peer with CA...")
 	enrollCmd := `./fabric-ca-client register --caname ` + depPeerFlags.CaName + ` --id.name ` + depPeerFlags.PeerName + ` --id.secret ` + peerPass + ` --id.type peer`
 	// Tls vs no tls command
-	if depPeerFlags.CaTlsCertPath != "" {
-		enrollCmd = enrollCmd + ` --tls.certfiles ` + depPeerFlags.CaTlsCertPath
+	if selectedCA.CaTlsCertPath != "" {
+		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
 	}
 	commands := []string{
 		`export FABRIC_CA_CLIENT_HOME=` + caClientHomePath,
@@ -400,14 +415,14 @@ func registerPeer() {
 
 func enrollPeer() {
 	fmt.Println("Enrolling peer...")
-	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.CaAddr, depPeerFlags.PeerName, peerPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(selectedCA.CaAddr, depPeerFlags.PeerName, peerPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl +
 		` --caname ` + depPeerFlags.CaName +
 		` -M ` + peerMspPath +
 		` --csr.hosts ` + getUrl(depPeerFlags.CorePeerAddr)
 	// Tls vs no tls command
-	if depPeerFlags.CaTlsCertPath != "" {
-		enrollCmd = enrollCmd + ` --tls.certfiles ` + depPeerFlags.CaTlsCertPath
+	if selectedCA.CaTlsCertPath != "" {
+		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
 	}
 
 	commands := []string{
@@ -435,15 +450,15 @@ func enrollPeer() {
 
 func enrollPeerTls() {
 	fmt.Println("Enrolling peer tls...")
-	userEncodedCaUrl := getUserEncodedCaUrl(depPeerFlags.CaAddr, depPeerFlags.PeerName, peerPass)
+	userEncodedCaUrl := getUserEncodedCaUrl(selectedCA.CaAddr, depPeerFlags.PeerName, peerPass)
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl +
 		` --caname ` + depPeerFlags.CaName +
 		` -M ` + peerTlsPath +
 		` --csr.hosts ` + getUrl(depPeerFlags.CorePeerAddr) +
 		` --csr.hosts ` + `localhost`
 	// Tls vs no tls command
-	if depPeerFlags.CaTlsCertPath != "" {
-		enrollCmd = enrollCmd + ` --tls.certfiles ` + depPeerFlags.CaTlsCertPath
+	if selectedCA.CaTlsCertPath != "" {
+		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
 	}
 
 	commands := []string{

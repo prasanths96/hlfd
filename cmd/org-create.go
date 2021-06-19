@@ -46,6 +46,8 @@ var orgCreateFlags struct {
 var (
 	orgPath    = ""
 	orgMSPPath = ""
+
+	loadedOrgInfo OrgInfo
 )
 
 type OrgInfo struct {

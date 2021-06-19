@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -132,13 +131,8 @@ func preRunDepOrderer() {
 		err := fmt.Errorf("org-name cannot be empty")
 		cobra.CheckErr(err)
 	}
-	// Org path check
-	orgPath = path.Join(hlfdPath, orgCommonFolder, depOrdererFlags.OrgName)
-	throwIfFileNotExist(orgPath)
-	// Load org info
-	orgInfoPath := path.Join(orgPath, orgInfoFileName)
-	err := json.Unmarshal(readFileBytes(orgInfoPath), &ordererDepOrgInfo)
-	cobra.CheckErr(err)
+	// Load orginfo
+	ordererDepOrgInfo = loadOrgInfo(depOrdererFlags.OrgName)
 
 	if depOrdererFlags.ExternalPort < 0 { // Check allowed ports as per standards
 		depOrdererFlags.ExternalPort = depOrdererFlags.Port
@@ -155,7 +149,7 @@ func preRunDepOrderer() {
 	ordererDepPath = path.Join(hlfdPath, ordererDepFolder, depOrdererFlags.OrdererName)
 	// Check if already exists
 	throwIfFileExists(ordererDepPath)
-	err = os.MkdirAll(ordererDepPath, commonFilUmask)
+	err := os.MkdirAll(ordererDepPath, commonFilUmask)
 	throwOtherThanFileExistError(err)
 
 	if depOrdererFlags.OrdererHomeVolumeMount == "" {
@@ -181,28 +175,7 @@ func preRunDepOrderer() {
 	}
 
 	// Select CA
-	selectCa()
-}
-
-func selectCa() {
-	switch depOrdererFlags.CaName {
-	case "":
-		// Choose first ca from list
-		selectedCA = ordererDepOrgInfo.CaInfo[0]
-	default:
-		found := false
-		for _, v := range ordererDepOrgInfo.CaInfo {
-			if v.CaName == depOrdererFlags.CaName {
-				selectedCA = v
-				found = true
-				break
-			}
-		}
-		if !found {
-			err := fmt.Errorf("ca-name: %v not found in the org: %v", depOrdererFlags.CaName, depOrdererFlags.OrgName)
-			cobra.CheckErr(err)
-		}
-	}
+	selectedCA = selectCaFromList(depOrdererFlags.CaName, ordererDepOrgInfo.CaInfo)
 }
 
 func deployOrderer() {

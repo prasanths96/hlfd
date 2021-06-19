@@ -16,6 +16,10 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"path"
+
 	"github.com/spf13/cobra"
 )
 
@@ -38,4 +42,36 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// orgCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func loadOrgInfo(orgName string) (loadedOrgInfo OrgInfo) {
+	orgPath := path.Join(hlfdPath, orgCommonFolder, orgName)
+	throwIfFileNotExist(orgPath)
+
+	orgInfoPath := path.Join(orgPath, orgInfoFileName)
+	err := json.Unmarshal(readFileBytes(orgInfoPath), &loadedOrgInfo)
+	cobra.CheckErr(err)
+	return
+}
+
+func selectCaFromList(caName string, caInfo []CAInfo) (selectedCA CAInfo) {
+	switch caName {
+	case "":
+		// Choose first ca from list
+		selectedCA = caInfo[0]
+	default:
+		found := false
+		for _, v := range caInfo {
+			if v.CaName == caName {
+				selectedCA = v
+				found = true
+				break
+			}
+		}
+		if !found {
+			err := fmt.Errorf("ca-name: %v not found in the org: %v", caName, depOrdererFlags.OrgName)
+			cobra.CheckErr(err)
+		}
+	}
+	return
 }
