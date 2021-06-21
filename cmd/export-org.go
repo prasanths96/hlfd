@@ -129,9 +129,11 @@ func exportOrg() {
 	cobra.CheckErr(err)
 	writeBytesToFile(orgInfoFileName, tgtPath, m)
 
-	// Pack ca folder
+	// Pack org folder
 	cmds = []string{
-		`tar -czvf ` + tgtPath + `.tar ` + tgtPath,
+		// If not cd into dir, then all dirs inbetween gets added (just the dir, not other files)
+		`cd ` + exportOrgFlags.ExportPath,
+		`tar -czvf ` + exportOrgFlags.OrgName + `.tar ` + exportOrgFlags.OrgName,
 	}
 	_, err = os_exec_utils.ExecMultiCommand(cmds)
 	cobra.CheckErr(err)

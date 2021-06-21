@@ -102,7 +102,9 @@ func exportCA() {
 
 	// Pack ca folder
 	cmds := []string{
-		`tar -czvf ` + tgtPath + `.tar ` + tgtPath,
+		// If not cd into dir, then all dirs inbetween gets added (just the dir, not other files)
+		`cd ` + exportCaFlags.ExportPath,
+		`tar -czvf ` + exportCaFlags.CAName + `.tar ` + exportCaFlags.CAName, // Only compressed from cafoldername
 	}
 	_, err = os_exec_utils.ExecMultiCommand(cmds)
 	cobra.CheckErr(err)
