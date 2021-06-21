@@ -85,7 +85,14 @@ func exportCA() {
 	err := json.Unmarshal(caInfoB, &u)
 	cobra.CheckErr(err)
 
-	tlsCertPath := u.TlsCertPath
+	if u.TLSEnabled {
+		// Cpy tls cert to target
+		cmds := []string{
+			`cp ` + u.TlsCertPath + ` ` + path.Join(tgtPath, "."),
+		}
+		_, err = os_exec_utils.ExecMultiCommand(cmds)
+		cobra.CheckErr(err)
+	}
 
 	// Export ca info to target
 	u.TlsCertPath = "./" + caTlsCertFileName
@@ -93,15 +100,8 @@ func exportCA() {
 	cobra.CheckErr(err)
 	writeBytesToFile(caInfoFileName, tgtPath, m)
 
-	// Cpy tls cert
-	cmds := []string{
-		`cp ` + tlsCertPath + ` ` + path.Join(tgtPath, "."),
-	}
-	_, err = os_exec_utils.ExecMultiCommand(cmds)
-	cobra.CheckErr(err)
-
 	// Pack ca folder
-	cmds = []string{
+	cmds := []string{
 		`tar -czvf ` + tgtPath + `.tar ` + tgtPath,
 	}
 	_, err = os_exec_utils.ExecMultiCommand(cmds)
