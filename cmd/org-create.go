@@ -127,6 +127,9 @@ func preRunOrgCreate() {
 	// 1. Create folders
 	orgPath = path.Join(hlfdPath, orgCommonFolder, orgCreateFlags.Name)
 	throwIfFileExists(orgPath)
+	orgImportPath := path.Join(hlfdPath, importCommonFolder, orgCommonFolder, orgCreateFlags.Name)
+	throwIfFileExists(orgImportPath)
+
 	err := os.MkdirAll(orgPath, commonFilUmask)
 	throwOtherThanFileExistError(err)
 	orgMSPPath = path.Join(orgPath, mspFolder)

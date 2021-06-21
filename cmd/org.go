@@ -18,7 +18,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -45,12 +47,40 @@ func init() {
 }
 
 func loadOrgInfo(orgName string) (loadedOrgInfo OrgInfo) {
+	// See if org available locally
 	orgPath := path.Join(hlfdPath, orgCommonFolder, orgName)
-	throwIfFileNotExist(orgPath)
+	// throwIfFileNotExist(orgPath)
+	_, err := os.Stat(orgPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			cobra.CheckErr(err)
+		}
+
+		// Check if org in imports
+		orgPath = path.Join(hlfdPath, importCommonFolder, orgCommonFolder, orgName)
+		throwIfFileNotExist(orgPath)
+	}
 
 	orgInfoPath := path.Join(orgPath, orgInfoFileName)
-	err := json.Unmarshal(readFileBytes(orgInfoPath), &loadedOrgInfo)
+	err = json.Unmarshal(readFileBytes(orgInfoPath), &loadedOrgInfo)
 	cobra.CheckErr(err)
+
+	// Resolve ca paths to absolute paths
+	for i := 0; i < len(loadedOrgInfo.CaInfo); i++ {
+		ca := &loadedOrgInfo.CaInfo[i]
+		if ca.CaTlsCertPath == "" {
+			continue
+		}
+
+		if ca.CaTlsCertPath[0] == '.' {
+			ca.CaTlsCertPath = strings.Replace(ca.CaTlsCertPath, ".", orgPath, 1)
+		}
+	}
+	// Resolve msp path to absolute path
+	if loadedOrgInfo.MspDir[0] == '.' {
+		loadedOrgInfo.MspDir = strings.Replace(loadedOrgInfo.MspDir, ".", orgPath, 1)
+	}
+
 	return
 }
 
