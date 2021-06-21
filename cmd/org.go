@@ -54,7 +54,7 @@ func loadOrgInfo(orgName string) (loadedOrgInfo OrgInfo) {
 	return
 }
 
-func selectCaFromList(caName string, caInfo []CAInfo) (selectedCA CAInfo) {
+func selectCaFromList(caName string, caInfo []OrgCAInfo) (selectedCA OrgCAInfo) {
 	switch caName {
 	case "":
 		// Choose first ca from list

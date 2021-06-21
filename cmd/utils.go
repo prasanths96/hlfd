@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -113,5 +114,16 @@ func isCmdExists(comdS string) (ok bool) {
 	if len(out) != 0 { // If not empty
 		ok = true
 	}
+	return
+}
+
+// Get preferred outbound ip of this machine
+func GetOutboundIP() (ip string) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	cobra.CheckErr(err)
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	ip = fmt.Sprint(localAddr.IP)
 	return
 }

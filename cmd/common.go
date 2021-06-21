@@ -29,10 +29,12 @@ var (
 	commonFilUmask = os.FileMode(0700)
 
 	//
-	caDepFolder      = "cas"
-	peerDepFolder    = "peers"
-	ordererDepFolder = "orderers"
-	orgCommonFolder  = "organizations"
+	caDepFolder        = "cas"
+	peerDepFolder      = "peers"
+	ordererDepFolder   = "orderers"
+	orgCommonFolder    = "organizations"
+	exportCommonFolder = "exports"
+	importCommonFolder = "imports"
 
 	//
 	caHomeFolder      = "ca-home"
@@ -41,7 +43,9 @@ var (
 	//
 	genesisFileName = "genesis.block"
 	//
-	orgInfoFileName = "info.json"
+	orgInfoFileName   = "info.json"
+	caInfoFileName    = "info.json"
+	caTlsCertFileName = "tls-cert.pem"
 
 	// CA Environment
 	CaAdminEnv     = "HLFD_CA_ADMIN_USER"

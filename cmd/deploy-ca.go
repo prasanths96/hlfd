@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -40,6 +41,14 @@ var depCaFlags struct {
 	ForceTerminate bool
 }
 
+type CAInfo struct {
+	CaName      string `json:"caName"`
+	CaHost      string `json:"caHost"`
+	CaPort      int    `json:"caPort"`
+	TLSEnabled  bool   `json:"tlsEnabled"`
+	TlsCertPath string `json:"tlsCertPath"`
+}
+
 // Deployment files path
 var caDepPath = ""
 var dockerComposeFileNameCa = ""
@@ -54,6 +63,7 @@ var deployCaCmd = &cobra.Command{
 		return
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
+		preRunRoot()
 		preRunDepCa()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -137,6 +147,9 @@ func deployCA() {
 	// setEnv()
 	// Run docker-compose up -d
 	execute(caDepPath, "docker-compose", "up", "-d")
+
+	// Store info
+	storeCAInfo()
 }
 
 func generateCAYAMLBytes() (yamlB []byte) {
@@ -191,4 +204,19 @@ func quietTerminateCa(peerName string) {
 	terminateCaFlags.Name = peerName
 	terminateCaFlags.Quiet = true
 	terminateCA()
+}
+
+func storeCAInfo() {
+	caInfo := CAInfo{
+		CaName:      depCaFlags.CaName,
+		CaHost:      GetOutboundIP(),
+		CaPort:      depCaFlags.ExternalPort,
+		TLSEnabled:  depCaFlags.TLSEnabled,
+		TlsCertPath: path.Join(depCaFlags.CAHomeVolumeMount, caTlsCertFileName),
+	}
+
+	m, err := json.MarshalIndent(caInfo, "", "    ")
+	cobra.CheckErr(err)
+
+	writeBytesToFile(caInfoFileName, caDepPath, m)
 }

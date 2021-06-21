@@ -51,14 +51,14 @@ var (
 )
 
 type OrgInfo struct {
-	Name     string   `json:"name"`
-	MspId    string   `json:"mspId"`
-	CaInfo   []CAInfo `json:"caInfo"`
-	MspDir   string   `json:"mspDir"`
-	Policies Object   `json:"policies"` // map[Readers]Policy , map[Writers]Policy, map[Admins]Policy ...
+	Name     string      `json:"name"`
+	MspId    string      `json:"mspId"`
+	CaInfo   []OrgCAInfo `json:"caInfo"`
+	MspDir   string      `json:"mspDir"`
+	Policies Object      `json:"policies"` // map[Readers]Policy , map[Writers]Policy, map[Admins]Policy ...
 }
 
-type CAInfo struct {
+type OrgCAInfo struct {
 	CaName           string `json:"caName"`
 	CaAddr           string `json:"caAddr"`
 	CaClientHomePath string `json:"caClientHomePath"`
@@ -277,7 +277,7 @@ func storeOrgInfo() {
 	orgInfo := OrgInfo{
 		Name:  orgCreateFlags.Name,
 		MspId: orgCreateFlags.MSP,
-		CaInfo: []CAInfo{
+		CaInfo: []OrgCAInfo{
 			{
 				CaName:           orgCreateFlags.CaName,
 				CaAddr:           orgCreateFlags.CaAddr,

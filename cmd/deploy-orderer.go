@@ -65,7 +65,7 @@ var ordererTlsPath = ""
 var ordererDepOrgInfo OrgInfo
 
 //
-var selectedCA CAInfo
+var selectedCA OrgCAInfo
 
 //
 var deployOrdererCmd = &cobra.Command{
