@@ -112,6 +112,8 @@ func init() {
 	// Required
 	orgCreateCmd.MarkFlagRequired("name")
 	orgCreateCmd.MarkFlagRequired("msp-id")
+	orgCreateCmd.MarkFlagRequired("ca-admin-user")
+	orgCreateCmd.MarkFlagRequired("ca-admin-pass")
 }
 
 func preRunOrgCreate() {
