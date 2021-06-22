@@ -86,6 +86,33 @@ func execute(dir string, comdS string, args ...string) {
 	err = comd.Wait()
 	cobra.CheckErr(err)
 }
+func executeIgnoreErr(dir string, comdS string, args ...string) {
+	comd := exec.Command(comdS, args...)
+	if dir != "" {
+		comd.Dir = dir
+	}
+	var out outstream
+	comd.Stdout = out
+	comd.Stderr = out
+	// out, err := comd.CombinedOutput()
+	// fmt.Println(string(out))
+	// cobra.CheckErr(err)
+
+	// err := comd.Run()
+	// cobra.CheckErr(err)
+
+	// stdout, err := comd.StdoutPipe()
+	// cobra.CheckErr(err)
+
+	_ = comd.Start()
+	// cobra.CheckErr(err)
+
+	// _, err = ioutil.ReadAll(stdout)
+	// cobra.CheckErr(err)
+
+	_ = comd.Wait()
+	// cobra.CheckErr(err)
+}
 
 func execAndGetOutput(dir string, comdS string, args ...string) (out []byte) {
 	comd := exec.Command(comdS, args...)

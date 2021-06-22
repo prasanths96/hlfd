@@ -134,8 +134,9 @@ func installDocker() {
 	execute("", "sudo", "apt", "update", "-y")
 	execute("", "sudo", "apt", "install", "docker-ce", "-y")
 	username := strings.Trim(string(execAndGetOutput("", "whoami")), "\n")
-	fmt.Println("Received username:", username)
+	executeIgnoreErr("", "sudo", "groupadd", "docker")
 	execute("", "sudo", "usermod", "-aG", "docker", username)
+	execute("", "newgrp", "docker")
 
 	execute("", "docker", "--version")
 }
