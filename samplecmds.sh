@@ -8,7 +8,8 @@ hlfd org create -n org1 -m Org1MSP --ca-name test --ca-admin-user admin --ca-adm
 hlfd deploy peer -n first-peer -t --org-name org1 --ca-name test --ca-admin-user admin --ca-admin-pass adminpw --state-db CouchDB 
 
 # Orderer    !!!MUST USE EXTERNALLY ACCESSIBLE ADDRESS, not localhost (--orderer-addr)
-hlfd deploy orderer -n first-orderer -t --org-name org1 --orderer-addr=localhost:7050 --ca-name test --ca-admin-user admin --ca-admin-pass adminpw 
+# hlfd deploy orderer -n first-orderer -t --org-name org1 --orderer-addr=localhost:7050 --ca-name test --ca-admin-user admin --ca-admin-pass adminpw 
+hlfd deploy orderer -n first-orderer -t --org-name org1 --ca-name test --ca-admin-user admin --ca-admin-pass adminpw 
 
 # export ca
 hlfd export ca -n test -o .

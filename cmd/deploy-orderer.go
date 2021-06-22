@@ -121,7 +121,6 @@ func init() {
 	// deployOrdererCmd.MarkFlagRequired("ca-addr")
 	deployOrdererCmd.MarkFlagRequired("ca-admin-user")
 	deployOrdererCmd.MarkFlagRequired("ca-admin-pass")
-	deployOrdererCmd.MarkFlagRequired("orderer-addr")
 	deployOrdererCmd.MarkFlagRequired("org-name")
 }
 
@@ -131,11 +130,15 @@ func preRunDepOrderer() {
 		err := fmt.Errorf("org-name cannot be empty")
 		cobra.CheckErr(err)
 	}
+
 	// Load orginfo
 	ordererDepOrgInfo = loadOrgInfo(depOrdererFlags.OrgName)
 
 	if depOrdererFlags.ExternalPort < 0 { // Check allowed ports as per standards
 		depOrdererFlags.ExternalPort = depOrdererFlags.Port
+	}
+	if depOrdererFlags.OrdererAddr == "" {
+		depOrdererFlags.OrdererAddr = generateOrdererAddrFromFlags()
 	}
 
 	// Force terminate existing, if flag is set
@@ -526,4 +529,16 @@ func quietTerminateOrderer(peerName string) {
 	terminateOrdererFlags.Name = peerName
 	terminateOrdererFlags.Quiet = true
 	terminateOrderer()
+}
+
+func generateOrdererAddrFromFlags() (addr string) {
+	// addr = `http://`
+	// if depOrdererFlags.TLSEnabled {
+	// 	addr = `https://`
+	// }
+
+	host := GetOutboundIP()
+
+	addr = addr + host + `:` + strconv.Itoa(depOrdererFlags.ExternalPort)
+	return
 }
