@@ -212,7 +212,7 @@ func deployPeer() {
 	// 3. Up
 	_, err := os_exec_utils.ExecMultiCommand([]string{
 		`cd ` + peerDepPath,
-		`docker-compose up -d`,
+		`sudo docker-compose up -d`,
 	})
 	cobra.CheckErr(err)
 

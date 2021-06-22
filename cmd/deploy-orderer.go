@@ -191,7 +191,7 @@ func deployOrderer() {
 	// 4. Up
 	_, err := os_exec_utils.ExecMultiCommand([]string{
 		`cd ` + ordererDepPath,
-		`docker-compose up -d`,
+		`sudo docker-compose up -d`,
 	})
 	cobra.CheckErr(err)
 }

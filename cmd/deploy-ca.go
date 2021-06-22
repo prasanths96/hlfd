@@ -147,7 +147,7 @@ func deployCA() {
 	// Set necessary env
 	// setEnv()
 	// Run docker-compose up -d
-	execute(caDepPath, "docker-compose", "up", "-d")
+	execute(caDepPath, "sudo", "docker-compose", "up", "-d")
 
 	// Store info
 	storeCAInfo()

@@ -63,5 +63,5 @@ func resumePeer() {
 	cobra.CheckErr(err)
 
 	// Run docker-compose
-	execute(fullPath, "docker-compose", "up", "-d")
+	execute(fullPath, "sudo", "docker-compose", "up", "-d")
 }

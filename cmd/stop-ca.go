@@ -63,5 +63,5 @@ func stopCA() {
 	cobra.CheckErr(err)
 
 	// Run docker-compose stop
-	execute(fullPath, "docker-compose", "stop")
+	execute(fullPath, "sudo", "docker-compose", "stop")
 }

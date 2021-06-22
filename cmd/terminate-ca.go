@@ -69,7 +69,7 @@ func terminateCA() {
 	cobra.CheckErr(err)
 
 	// Run docker-compose stop
-	execute(fullPath, "docker-compose", "down", "-v", "--rmi", "local")
+	execute(fullPath, "sudo", "docker-compose", "down", "-v", "--rmi", "local")
 
 	// Remove ca folder
 	execute(path.Join(hlfdPath, caDepFolder), "sudo", "rm", "-rf", terminateCaFlags.Name)

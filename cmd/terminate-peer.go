@@ -73,7 +73,7 @@ func terminatePeer() {
 	cmds := []string{
 		// Run docker-compose stop
 		`cd ` + fullPath,
-		`docker-compose down -v --rmi local`,
+		`sudo docker-compose down -v --rmi local`,
 
 		// Remove folder
 		`cd ` + path.Join(hlfdPath, peerDepFolder),
