@@ -168,6 +168,7 @@ func generateCAYAMLBytes() (yamlB []byte) {
 					"FABRIC_CA_SERVER_CA_NAME=" + depCaFlags.CaName,
 					"FABRIC_CA_SERVER_TLS_ENABLED=" + strconv.FormatBool(depCaFlags.TLSEnabled),
 					"FABRIC_CA_SERVER_PORT=" + strconv.FormatInt(int64(depCaFlags.Port), 10),
+					"FABRIC_CA_SERVER_CSR_HOSTS=" + GetOutboundIP(),
 				},
 				"ports": []string{
 					strconv.FormatInt(int64(depCaFlags.ExternalPort), 10) + ":" + strconv.FormatInt(int64(depCaFlags.Port), 10),
@@ -258,9 +259,9 @@ func getCaAddrFromCAInfo(caInfo CAInfo) (addr string) {
 	}
 	host := caInfo.CaHost
 
-	if GetOutboundIP() == host {
-		host = `localhost`
-	}
+	// if GetOutboundIP() == host {
+	// 	host = `localhost`
+	// }
 
 	addr = addr + host + `:` + strconv.Itoa(caInfo.CaPort)
 	return
