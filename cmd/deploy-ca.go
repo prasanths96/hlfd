@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -219,4 +220,48 @@ func storeCAInfo() {
 	cobra.CheckErr(err)
 
 	writeBytesToFile(caInfoFileName, caDepPath, m)
+}
+
+func loadCAInfo(caName string) (loadedCaInfo CAInfo) {
+	// See if available locally
+	caPath := path.Join(hlfdPath, caDepFolder, caName)
+	_, err := os.Stat(caPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			cobra.CheckErr(err)
+		}
+
+		// Check if in imports
+		caPath = path.Join(hlfdPath, importCommonFolder, caDepFolder, caName)
+		throwIfFileNotExist(caPath)
+	}
+
+	caInfoPath := path.Join(caPath, caInfoFileName)
+	err = json.Unmarshal(readFileBytes(caInfoPath), &loadedCaInfo)
+	cobra.CheckErr(err)
+
+	// Resolve paths to absolute paths
+	if loadedCaInfo.TLSEnabled {
+
+		if loadedCaInfo.TlsCertPath[0] == '.' {
+			loadedCaInfo.TlsCertPath = strings.Replace(loadedCaInfo.TlsCertPath, ".", caPath, 1)
+		}
+	}
+
+	return
+}
+
+func getCaAddrFromCAInfo(caInfo CAInfo) (addr string) {
+	addr = `http://`
+	if caInfo.TLSEnabled {
+		addr = `https://`
+	}
+	host := caInfo.CaHost
+
+	if GetOutboundIP() == host {
+		host = `localhost`
+	}
+
+	addr = addr + host + `:` + strconv.Itoa(caInfo.CaPort)
+	return
 }

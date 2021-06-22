@@ -111,7 +111,7 @@ func exportOrg() {
 		cobra.CheckErr(err)
 
 		// Change tls path
-		ca.CaTlsCertPath = `./` + path.Join(caDepFolder, ca.CaName, caTlsCertFileName)
+		ca.CaTlsCertPath = `./` + path.Join(caDepFolder, ca.CaName, caTlsCertFileName) // NOTE: Make sure ./ is added, it is used programatically
 	}
 
 	// Copy msp folder
@@ -122,7 +122,7 @@ func exportOrg() {
 	cobra.CheckErr(err)
 
 	// Change msp dir
-	u.MspDir = `./` + mspFolder
+	u.MspDir = `./` + mspFolder // NOTE: Make sure ./ is added, it is used programatically
 
 	// Export org info to target
 	m, err := json.MarshalIndent(u, " ", "    ")

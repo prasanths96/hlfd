@@ -112,6 +112,7 @@ func init() {
 	// Required
 	orgCreateCmd.MarkFlagRequired("name")
 	orgCreateCmd.MarkFlagRequired("msp-id")
+	orgCreateCmd.MarkFlagRequired("ca-name")
 	orgCreateCmd.MarkFlagRequired("ca-admin-user")
 	orgCreateCmd.MarkFlagRequired("ca-admin-pass")
 }
@@ -138,6 +139,19 @@ func preRunOrgCreate() {
 
 	// Set variables
 	caClientHomePath = path.Join(hlfdPath, caClientHomeFolder, orgCreateFlags.CaName)
+
+	// Load CA
+	if orgCreateFlags.CaName == "" {
+		err := fmt.Errorf("ca-name cannot be empty")
+		cobra.CheckErr(err)
+	}
+	if orgCreateFlags.CaAddr == "" {
+		ca := loadCAInfo(orgCreateFlags.CaName)
+		orgCreateFlags.CaAddr = getCaAddrFromCAInfo(ca)
+		if ca.TLSEnabled {
+			orgCreateFlags.CaTlsCertPath = ca.TlsCertPath
+		}
+	}
 
 }
 

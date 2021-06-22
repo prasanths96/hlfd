@@ -95,7 +95,7 @@ func exportCA() {
 	}
 
 	// Export ca info to target
-	u.TlsCertPath = "./" + caTlsCertFileName
+	u.TlsCertPath = "./" + caTlsCertFileName // NOTE: Make sure ./ is added, it is used programatically
 	m, err := json.MarshalIndent(u, " ", "    ")
 	cobra.CheckErr(err)
 	writeBytesToFile(caInfoFileName, tgtPath, m)
