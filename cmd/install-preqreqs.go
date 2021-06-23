@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/spf13/cobra"
 )
@@ -58,14 +59,18 @@ func installPrereqs() {
 	// Install indiviual things
 
 	// Install all
+	var wg sync.WaitGroup
 	execute("", "sudo", "apt", "update", "-y") // Don't forget to un-comment
-	installGit()
-	installWget()
-	installCurl()
-	installBuildEssential()
-	installDocker()
-	installDockerCompose()
-	installGo()
+
+	wg.Add(7)
+	installGit(&wg)
+	installWget(&wg)
+	installCurl(&wg)
+	installBuildEssential(&wg)
+	installDocker(&wg)
+	installDockerCompose(&wg)
+	installGo(&wg)
+	wg.Wait()
 
 	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 	fmt.Println("Installation success!")
@@ -75,7 +80,8 @@ func installPrereqs() {
 }
 
 // Different pre-reqs
-func installGit() {
+func installGit(wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Println("Checking git...")
 	if isCmdExists("git") {
 		return
@@ -86,7 +92,8 @@ func installGit() {
 	execute("", "git", "--version")
 }
 
-func installWget() {
+func installWget(wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Println("Checking wget...")
 	if isCmdExists("wget") {
 		return
@@ -97,7 +104,8 @@ func installWget() {
 	execute("", "wget", "--version")
 }
 
-func installCurl() {
+func installCurl(wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Println("Checking curl...")
 	if isCmdExists("curl") {
 		return
@@ -108,12 +116,14 @@ func installCurl() {
 	execute("", "curl", "--version")
 }
 
-func installBuildEssential() {
+func installBuildEssential(wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Println("Installing build-essential...")
 	execute("", "sudo", "apt", "install", "build-essential", "-y")
 }
 
-func installDocker() {
+func installDocker(wg *sync.WaitGroup) {
+	defer wg.Done()
 	// Notes: Problems with WSL: systemd not present in wsl so systemctl wont work. Instead, init is present.
 	// use "service docker start", "service docker status"
 	// So check if systemd is present
@@ -141,7 +151,8 @@ func installDocker() {
 	execute("", "docker", "--version")
 }
 
-func installDockerCompose() {
+func installDockerCompose(wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Println("Checking docker-compose...")
 	if isCmdExists("docker-compose") {
 		return
@@ -156,7 +167,8 @@ func installDockerCompose() {
 	execute("", "docker-compose", "--version")
 }
 
-func installGo() {
+func installGo(wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Println("Checking go...")
 	if isCmdExists("go") {
 		return

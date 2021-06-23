@@ -38,6 +38,7 @@ var depCaFlags struct {
 	CAHomeVolumeMount string
 	DockerNetwork     string
 	ImageTag          string
+	HostAddr          string
 	// ContainerName     string
 	ForceTerminate bool
 }
@@ -87,6 +88,7 @@ func init() {
 	deployCaCmd.Flags().StringVarP(&depCaFlags.ImageTag, "image-tag", "i", "latest", "Hyperledger CA docker image tag")
 	deployCaCmd.Flags().BoolVarP(&depCaFlags.ForceTerminate, "force", "f", false, "Force deploy or terminate ca if ca with given name already exists")
 
+	deployCaCmd.Flags().StringVarP(&depCaFlags.HostAddr, "host-addr", "", "", "Externally accessible address of this host")
 	// Required
 	deployCaCmd.MarkFlagRequired("name")
 	// Here you will define your flags and configuration settings.
@@ -107,6 +109,9 @@ func preRunDepCa() {
 	// }
 	if depCaFlags.ExternalPort < 0 { // Check allowed ports as per standards
 		depCaFlags.ExternalPort = depCaFlags.Port
+	}
+	if depCaFlags.HostAddr == "" {
+		depCaFlags.HostAddr = GetOutboundIP()
 	}
 
 	// Force terminate existing ca, if flag is set
@@ -168,7 +173,7 @@ func generateCAYAMLBytes() (yamlB []byte) {
 					"FABRIC_CA_SERVER_CA_NAME=" + depCaFlags.CaName,
 					"FABRIC_CA_SERVER_TLS_ENABLED=" + strconv.FormatBool(depCaFlags.TLSEnabled),
 					"FABRIC_CA_SERVER_PORT=" + strconv.FormatInt(int64(depCaFlags.Port), 10),
-					"FABRIC_CA_SERVER_CSR_HOSTS=" + GetOutboundIP(),
+					"FABRIC_CA_SERVER_CSR_HOSTS=" + depCaFlags.HostAddr,
 				},
 				"ports": []string{
 					strconv.FormatInt(int64(depCaFlags.ExternalPort), 10) + ":" + strconv.FormatInt(int64(depCaFlags.Port), 10),
@@ -211,7 +216,7 @@ func quietTerminateCa(peerName string) {
 func storeCAInfo() {
 	caInfo := CAInfo{
 		CaName:      depCaFlags.CaName,
-		CaHost:      GetOutboundIP(),
+		CaHost:      depCaFlags.HostAddr,
 		CaPort:      depCaFlags.ExternalPort,
 		TLSEnabled:  depCaFlags.TLSEnabled,
 		TlsCertPath: path.Join(depCaFlags.CAHomeVolumeMount, caTlsCertFileName),

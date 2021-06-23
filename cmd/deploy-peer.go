@@ -32,6 +32,7 @@ import (
 var depPeerFlags struct {
 	PeerName            string
 	TLSEnabled          bool
+	HostAddr            string
 	Port                int
 	ExternalPort        int
 	PeerHomeVolumeMount string
@@ -39,7 +40,7 @@ var depPeerFlags struct {
 	ImageTag            string
 	// MSPId               string
 	PeerLogging   string
-	CorePeerAddr  string
+	CorePeerAddr  string // for the same org to access
 	ChaincodeAddr string
 	// CaAddr              string
 	CaAdminUser string
@@ -94,9 +95,11 @@ func init() {
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.ImageTag, "image-tag", "i", "2.2", "Hyperledger Peer docker image tag")
 	deployPeerCmd.Flags().BoolVarP(&depPeerFlags.ForceTerminate, "force", "f", false, "Force deploy or terminate peer if peer with given name already exists")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.PeerLogging, "peer-log", "l", "INFO", "Peer logging spec {INFO | DEBUG}")
-	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CorePeerAddr, "core-peer-addr", "a", ``, "Externally accessible address of peer / CORE_PEER_ADDRESS")
+	// deployPeerCmd.Flags().StringVarP(&depPeerFlags.CorePeerAddr, "core-peer-addr", "a", ``, "Internally accessible address of peer (within org network) / CORE_PEER_ADDRESS")
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.ChaincodeAddr, "chaincode-addr", "c", ``, "Externally accessible address of chaincode / CORE_PEER_CHAINCODEADDRESS")
 	// deployPeerCmd.Flags().StringVarP(&depPeerFlags.MSPId, "msp-id", "m", ``, "MSP ID of peer / CORE_PEER_MSPID (required)")
+
+	deployPeerCmd.Flags().StringVarP(&depPeerFlags.HostAddr, "host-addr", "", ``, "Externally accessible address of this host")
 
 	// TODO: If local ca, ca-name should be sufficient
 	deployPeerCmd.Flags().StringVarP(&depPeerFlags.CaName, "ca-name", "", ``, "Fabric Certificate Authority name to generate certs for peer (required)")
@@ -158,6 +161,9 @@ func preRunDepPeer() {
 	}
 	if depPeerFlags.CouchPort < 0 {
 		depPeerFlags.CouchPort = depPeerFlags.Port + 100
+	}
+	if depPeerFlags.HostAddr == "" {
+		depPeerFlags.HostAddr = GetOutboundIP() + `:` + strconv.Itoa(depPeerFlags.ExternalPort)
 	}
 
 	// Force terminate existing, if flag is set
@@ -244,9 +250,9 @@ func generatePeerYAMLBytes() (yamlB []byte) {
 					`CORE_PEER_LISTENADDRESS=0.0.0.0:` + strconv.Itoa(depPeerFlags.Port), // 0.0.0.0:7051
 					`CORE_PEER_CHAINCODEADDRESS=` + depPeerFlags.ChaincodeAddr,           // peer0.org1.medisotv2.com:7052
 					`CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:` + getPort(depPeerFlags.ChaincodeAddr),
-					`CORE_PEER_GOSSIP_BOOTSTRAP=` + depPeerFlags.CorePeerAddr, // peer0.org1.medisotv2.com:7051
+					`CORE_PEER_GOSSIP_BOOTSTRAP=` + depPeerFlags.HostAddr, // peer0.org1.medisotv2.com:7051
 					// If this isn't set, the peer will not be known to other organizations.
-					`CORE_PEER_GOSSIP_EXTERNALENDPOINT=` + depPeerFlags.CorePeerAddr, // peer0.org1.medisotv2.com:7051 / for outside org
+					`CORE_PEER_GOSSIP_EXTERNALENDPOINT=` + depPeerFlags.HostAddr, // peer0.org1.medisotv2.com:7051 / for outside org
 					`CORE_PEER_LOCALMSPID=` + peerDepOrgInfo.MspId,
 					//
 					// CORE_PEER_TLS_CLIENTAUTHREQUIRED // mutual tls
@@ -419,7 +425,8 @@ func enrollPeer() {
 	enrollCmd := `./fabric-ca-client enroll -u ` + userEncodedCaUrl +
 		` --caname ` + depPeerFlags.CaName +
 		` -M ` + peerMspPath +
-		` --csr.hosts ` + getUrl(depPeerFlags.CorePeerAddr)
+		` --csr.hosts ` + getUrl(depPeerFlags.CorePeerAddr) +
+		` --csr.hosts ` + depPeerFlags.HostAddr
 	// Tls vs no tls command
 	if selectedCA.CaTlsCertPath != "" {
 		enrollCmd = enrollCmd + ` --tls.certfiles ` + selectedCA.CaTlsCertPath
@@ -455,6 +462,7 @@ func enrollPeerTls() {
 		` --caname ` + depPeerFlags.CaName +
 		` -M ` + peerTlsPath +
 		` --csr.hosts ` + getUrl(depPeerFlags.CorePeerAddr) +
+		` --csr.hosts ` + depPeerFlags.HostAddr +
 		` --csr.hosts ` + `localhost`
 	// Tls vs no tls command
 	if selectedCA.CaTlsCertPath != "" {

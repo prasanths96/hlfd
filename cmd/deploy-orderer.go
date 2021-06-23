@@ -46,7 +46,8 @@ var depOrdererFlags struct {
 	CaClientVersion string
 	CaName          string
 	// CaTlsCertPath   string
-	OrdererAddr string
+	OrdererAddr string // not taken in flags
+	HostAddr    string
 
 	//
 	// GenesisPath string
@@ -97,7 +98,7 @@ func init() {
 	deployOrdererCmd.Flags().BoolVarP(&depOrdererFlags.ForceTerminate, "force", "f", false, "Force deploy or terminate orderer if orderer with given name already exists")
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.OrdererLogging, "orderer-log", "l", "INFO", "Orderer logging spec {INFO | DEBUG}")
 	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.MSPId, "msp-id", "m", ``, "MSP ID of orderer / ORDERER_GENERAL_LOCALMSPID (required)")
-	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.OrdererAddr, "orderer-addr", "a", ``, "Externally accessible address of orderer")
+	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.OrdererAddr, "orderer-addr", "a", ``, "Externally accessible address of orderer")
 
 	// TODO: If local ca, ca-name should be sufficient
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaName, "ca-name", "", ``, "Fabric Certificate Authority name to generate certs for orderer (required)")
@@ -106,6 +107,7 @@ func init() {
 	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaAdminPass, "ca-admin-pass", "", ``, "Fabric Certificate Authority admin pass to generate certs for orderer (required)")
 	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaClientPath, "ca-client-path", "", ``, "Path to fabric-ca-client binary")
 	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.CaTlsCertPath, "ca-tls-cert-path", "", ``, "Path to ca's pem encoded tls certificate (if applicable)")
+	deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.HostAddr, "host-addr", "", ``, "Externally accessible address of this host")
 
 	// Passing Genesis block, if not passed, generate new
 	// deployOrdererCmd.Flags().StringVarP(&depOrdererFlags.GenesisPath, "genesis-path", "", ``, "Path to orderer genesis block to bootstrap with")
@@ -136,6 +138,9 @@ func preRunDepOrderer() {
 
 	if depOrdererFlags.ExternalPort < 0 { // Check allowed ports as per standards
 		depOrdererFlags.ExternalPort = depOrdererFlags.Port
+	}
+	if depOrdererFlags.HostAddr == "" {
+		depOrdererFlags.HostAddr = GetOutboundIP()
 	}
 	if depOrdererFlags.OrdererAddr == "" {
 		depOrdererFlags.OrdererAddr = generateOrdererAddrFromFlags()
@@ -537,7 +542,7 @@ func generateOrdererAddrFromFlags() (addr string) {
 	// 	addr = `https://`
 	// }
 
-	host := GetOutboundIP()
+	host := depOrdererFlags.HostAddr
 
 	addr = addr + host + `:` + strconv.Itoa(depOrdererFlags.ExternalPort)
 	return
