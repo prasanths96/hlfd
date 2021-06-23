@@ -69,7 +69,7 @@ func installPrereqs() {
 	installBuildEssential(&wg)
 	installDocker(&wg)
 	installDockerCompose(&wg)
-	installGo(&wg)
+	// installGo(&wg) // why is it installing everytime
 	wg.Wait()
 
 	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
