@@ -23,3 +23,22 @@ hlfd export org -n org1 -o .
 # import org
 hlfd import org -f org1.tar
 rm -rf org1.tar
+
+# stop 
+hlfd stop ca -n test 
+hlfd stop peer -n first-peer
+hlfd stop orderer -n first-orderer
+
+# You can delete the docker containers, volumes, networks all you want, it wont matter
+
+# resume
+hlfd resume ca -n test
+hlfd resume peer -n first-peer
+hlfd resume orderer -n first-orderer
+
+# terminate
+hlfd terminate ca -n test
+hlfd terminate peer -n first-peer
+hlfd terminate orderer -n first-orderer
+
+# now all data is also deleted, theres no going back
