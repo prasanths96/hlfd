@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"sync"
 
 	"github.com/spf13/cobra"
 )
@@ -59,29 +58,25 @@ func installPrereqs() {
 	// Install indiviual things
 
 	// Install all
-	var wg sync.WaitGroup
 	execute("", "sudo", "apt", "update", "-y") // Don't forget to un-comment
 
-	wg.Add(7)
-	installGit(&wg)
-	installWget(&wg)
-	installCurl(&wg)
-	installBuildEssential(&wg)
-	installDocker(&wg)
-	installDockerCompose(&wg)
+	installGit()
+	installWget()
+	installCurl()
+	installBuildEssential()
+	installDocker()
+	installDockerCompose()
 	// installGo(&wg) // why is it installing everytime
-	wg.Wait()
 
 	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 	fmt.Println("Installation success!")
-	fmt.Println(`Run "source ~/.profile" or re-login to access the following commands, if not previously installed:`)
-	fmt.Println("\t- go")
+	// fmt.Println(`Run "source ~/.profile" or re-login to access the following commands, if not previously installed:`)
+	// fmt.Println("\t- go")
 	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 }
 
 // Different pre-reqs
-func installGit(wg *sync.WaitGroup) {
-	defer wg.Done()
+func installGit() {
 	fmt.Println("Checking git...")
 	if isCmdExists("git") {
 		return
@@ -92,8 +87,7 @@ func installGit(wg *sync.WaitGroup) {
 	execute("", "git", "--version")
 }
 
-func installWget(wg *sync.WaitGroup) {
-	defer wg.Done()
+func installWget() {
 	fmt.Println("Checking wget...")
 	if isCmdExists("wget") {
 		return
@@ -104,8 +98,7 @@ func installWget(wg *sync.WaitGroup) {
 	execute("", "wget", "--version")
 }
 
-func installCurl(wg *sync.WaitGroup) {
-	defer wg.Done()
+func installCurl() {
 	fmt.Println("Checking curl...")
 	if isCmdExists("curl") {
 		return
@@ -116,14 +109,12 @@ func installCurl(wg *sync.WaitGroup) {
 	execute("", "curl", "--version")
 }
 
-func installBuildEssential(wg *sync.WaitGroup) {
-	defer wg.Done()
+func installBuildEssential() {
 	fmt.Println("Installing build-essential...")
 	execute("", "sudo", "apt", "install", "build-essential", "-y")
 }
 
-func installDocker(wg *sync.WaitGroup) {
-	defer wg.Done()
+func installDocker() {
 	// Notes: Problems with WSL: systemd not present in wsl so systemctl wont work. Instead, init is present.
 	// use "service docker start", "service docker status"
 	// So check if systemd is present
@@ -151,8 +142,7 @@ func installDocker(wg *sync.WaitGroup) {
 	execute("", "docker", "--version")
 }
 
-func installDockerCompose(wg *sync.WaitGroup) {
-	defer wg.Done()
+func installDockerCompose() {
 	fmt.Println("Checking docker-compose...")
 	if isCmdExists("docker-compose") {
 		return
@@ -167,8 +157,7 @@ func installDockerCompose(wg *sync.WaitGroup) {
 	execute("", "docker-compose", "--version")
 }
 
-func installGo(wg *sync.WaitGroup) {
-	defer wg.Done()
+func installGo() {
 	fmt.Println("Checking go...")
 	if isCmdExists("go") {
 		return

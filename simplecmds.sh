@@ -1,3 +1,6 @@
+# install prereqs
+hlfd install prereqs
+
 # CA
 hlfd deploy ca -n test -t
 
