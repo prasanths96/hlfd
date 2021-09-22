@@ -79,7 +79,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.Flags().StringVarP(&rootCommonFlags.CaClientVersion, "ca-client-version", "", `1.5.0`, "Version of fabric-ca-client binary (same as CA docker image version). Default: 1.5.0")
+	rootCmd.Flags().StringVarP(&rootCommonFlags.CaClientVersion, "ca-client-version", "", `1.4.9`, "Version of fabric-ca-client binary (same as CA docker image version). Default: 1.4.9")
 	rootCmd.Flags().StringVarP(&rootCommonFlags.HlfBinVersion, "hlf-bin-version", "", `2.2.3`, "Version of hlf binaries (same as peer/orderer docker image version). Default: 2.2.3")
 
 	// Here you will define your flags and configuration settings.

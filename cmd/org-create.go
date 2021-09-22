@@ -147,7 +147,7 @@ func preRunOrgCreate() {
 	}
 	if orgCreateFlags.CaAddr == "" {
 		ca := loadCAInfo(orgCreateFlags.CaName)
-		orgCreateFlags.CaAddr = getCaAddrFromCAInfo(ca)
+		orgCreateFlags.CaAddr = getCaAddrFromCAInfo(ca) 
 		if ca.TLSEnabled {
 			orgCreateFlags.CaTlsCertPath = ca.TlsCertPath
 		}
