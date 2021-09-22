@@ -15,8 +15,15 @@ limitations under the License.
 */
 package main
 
-import "github.com/prasanths96/hlfd/cmd"
+import (
+	"log"
+	"os"
+
+	"github.com/prasanths96/hlfd/cmd"
+)
 
 func main() {
+	// Setting log out
+	log.SetOutput(os.Stdout)
 	cmd.Execute()
 }
